@@ -1,6 +1,7 @@
 import os
 import cv2
 import logging
+from utils import load_image, save_image, ensure_directory_exists
 from deepface import DeepFace
 
 logging.basicConfig(
@@ -11,10 +12,12 @@ logging.basicConfig(
 
 # Constants
 BASE_IMG_DB_NAME = "face-db"
-CROPPED_IMG_DB_NAME = "cropped-face-db"
 BASE_IMG_DIR_NAME = "chaewon-test"
 BASE_IMG_FILE_NAME = "2.jpg"
+
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
+
+CROPPED_IMG_DB_NAME = "cropped-face-db"
 
 # Set file paths from constants
 BASE_IMG_FILE_PATH = os.path.join(
@@ -25,30 +28,12 @@ REFERENCE_IMG_FILE_PATH = os.path.join(
 )
 
 
-def load_image(path):
-    img = cv2.imread(path)
-    if img is None:
-        logging.error(f"Error: Failed to load image from {path}.")
-        return None  # Explicitly return None to signal failure
-    return img
-
-
-def save_image(path: str, img):
-    success = cv2.imwrite(path, img)
-    if success:
-        logging.info(f"Saved photo to {path}")
-    else:
-        logging.error(f"Failed to save photo to {path}")
-
-
 def save_detected_faces(faces: list):
     detected_faces_dir = os.path.join(
         CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME + "/"
     )  # the "/" is added to ensure this is recognized as a directory path and not a file
 
-    # Ensure the output directory exists before saving
-    if not os.path.exists(detected_faces_dir):
-        os.makedirs(detected_faces_dir)
+    ensure_directory_exists(detected_faces_dir)
 
     # load image here so I simply crop this image for every detected face
     img = load_image(BASE_IMG_FILE_PATH)
