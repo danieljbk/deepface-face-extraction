@@ -2,6 +2,15 @@ import os
 import cv2
 import logging
 from utils import load_image, save_image, ensure_directory_exists
+from config import (
+    BASE_IMG_DB_NAME,
+    BASE_IMG_DIR_NAME,
+    BASE_IMG_FILE_NAME,
+    REFERENCE_IMG_FILE_NAME,
+    CROPPED_IMG_DB_NAME,
+    BASE_IMG_FILE_PATH,
+    REFERENCE_IMG_FILE_PATH,
+)
 from deepface import DeepFace
 
 logging.basicConfig(
@@ -10,29 +19,11 @@ logging.basicConfig(
     handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
 )
 
-# Constants
-BASE_IMG_DB_NAME = "face-db"
-BASE_IMG_DIR_NAME = "chaewon-test"
-BASE_IMG_FILE_NAME = "2.jpg"
-
-REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
-
-CROPPED_IMG_DB_NAME = "cropped-face-db"
-
-# Set file paths from constants
-BASE_IMG_FILE_PATH = os.path.join(
-    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME
-)
-REFERENCE_IMG_FILE_PATH = os.path.join(
-    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
-)
-
 
 def save_detected_faces(faces: list):
     detected_faces_dir = os.path.join(
         CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME + "/"
     )  # the "/" is added to ensure this is recognized as a directory path and not a file
-
     ensure_directory_exists(detected_faces_dir)
 
     # load image here so I simply crop this image for every detected face
@@ -52,7 +43,6 @@ def save_detected_faces(faces: list):
             facial_area["w"],
             facial_area["h"],
         )
-
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
@@ -63,7 +53,6 @@ def save_detected_faces(faces: list):
             cropped_img_full_path = os.path.join(
                 detected_faces_dir, cropped_img_filename
             )
-
             save_image(cropped_img_full_path, cropped_img)
             count += 1
 
@@ -117,25 +106,26 @@ def detect_multiple_faces():
     )
 
 
-faces = detect_multiple_faces()
-detected_faces_info = save_detected_faces(faces)
+if __name__ == "__main__":
+    faces = detect_multiple_faces()
+    detected_faces_info = save_detected_faces(faces)
 
-if detected_faces_info is None:
-    logging.error(
-        "Failed to detect and save faces from BASE_IMG, aborting further processing."
-    )
-else:
-    detected_faces_dir = detected_faces_info
-    most_similar_cropped_img_path = find_most_similar_face(
-        detected_faces_dir,
-    )
-    if most_similar_cropped_img_path:
-        # set destination path (for copying photo)
-        new_most_similar_cropped_img_path = os.path.join(
-            CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
+    if detected_faces_info is None:
+        logging.error(
+            "Failed to detect and save faces from BASE_IMG, aborting further processing."
         )
-        # Copy & paste the most similar cropped image
-        most_similar_cropped_img = load_image(most_similar_cropped_img_path)
-        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+    else:
+        detected_faces_dir = detected_faces_info
+        most_similar_cropped_img_path = find_most_similar_face(
+            detected_faces_dir,
+        )
+        if most_similar_cropped_img_path:
+            # set destination path (for copying photo)
+            new_most_similar_cropped_img_path = os.path.join(
+                CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
+            )
+            # Copy & paste the most similar cropped image
+            most_similar_cropped_img = load_image(most_similar_cropped_img_path)
+            save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
-logging.info("Code executed without crashing.")
+    logging.info("Processing completed.")
