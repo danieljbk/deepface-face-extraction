@@ -25,7 +25,7 @@ def save_detected_faces(faces: list, img_path: str):
     # load image here so I simply crop this image for every detected face
     img = load_image(img_path)
     if img is None:
-        logging.error("Failed to load image, aborting face detection.")
+        logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
         return None  # Exit the function if image is not loaded
 
     # used to create unique filename for each face (1.png, 2.png, etc.)
@@ -78,7 +78,9 @@ def find_most_similar_face(
         # but, this could also be used as a feature if we can filter photos by distance and automatically group them...
         # into a batch of photos for the face recognized as "old photos of A" v.s. "recent photos of A"
         most_similar_df = dfs.loc[0]
-        logging.info("Found at least 1 face similar to reference face.")
+        logging.info(
+            f"Found at least 1 face similar to reference image ({REFERENCE_IMG_FILE_PATH}) in ({directory})."
+        )
 
         # extract path data from dataframes
         most_similar_face_img_path = most_similar_df["identity"]
@@ -105,13 +107,15 @@ def detect_faces(img_path):
 def process_single_image(img_path):
     faces = detect_faces(img_path)
     if faces is None:
-        logging.error("Failed to detect faces in image, aborting further processing.")
+        logging.error(
+            f"Failed to detect faces from ({img_path}), aborting further processing."
+        )
         return
 
     detected_faces_dir = save_detected_faces(faces, img_path)
     if detected_faces_dir is None:
         logging.error(
-            "Failed to detect and save faces from BASE_IMG, aborting further processing."
+            f"Failed to save detected faces from ({img_path}), aborting further processing."
         )
         return
 
@@ -120,7 +124,7 @@ def process_single_image(img_path):
         detected_faces_dir,
     )
     if most_similar_face_img_path:
-        logging.info(f"Most similar face found at: {most_similar_face_img_path}")
+        logging.info(f"Most similar face found at: ({most_similar_face_img_path})")
 
         # Set the destination path for copying the photo
         new_most_similar_cropped_img_path = os.path.join(
@@ -133,7 +137,7 @@ def process_single_image(img_path):
         most_similar_cropped_img = load_image(most_similar_face_img_path)
         save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
         logging.info(
-            f"Copied and saved the most similar face to: {new_most_similar_cropped_img_path}"
+            f"Copied and saved the most similar face to: ({new_most_similar_cropped_img_path})"
         )
 
     logging.info(f"Processing of image ({img_path}) complete.")
