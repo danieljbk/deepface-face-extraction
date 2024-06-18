@@ -15,33 +15,27 @@ IMG_DIR_NAME = "chaewon-test"
 IMG_FILE_NAME = "2.jpg"
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
 
+# Combine the directory with the base path
+FULL_IMG_PATH = os.path.join(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME)
 
-def load_image(full_img_path):
-    img = cv2.imread(full_img_path)
+
+def load_image(path):
+    img = cv2.imread(path)
     if img is None:
-        logging.error(f"Error: Failed to load image from {full_img_path}.")
+        logging.error(f"Error: Failed to load image from {path}.")
         return None  # Explicitly return None to signal failure
     return img
 
 
-def save_image(img_destination_path: str, img):
-    success = cv2.imwrite(img_destination_path, img)
+def save_image(path: str, img):
+    success = cv2.imwrite(path, img)
     if success:
-        logging.info(f"Saved photo to {img_destination_path}")
+        logging.info(f"Saved photo to {path}")
     else:
-        logging.error(f"Failed to save photo to {img_destination_path}")
+        logging.error(f"Failed to save photo to {path}")
 
 
-def save_most_similar_face(most_similar_cropped_img_path, destination_path):
-    # Load most similar cropped image from directory (copy)
-    most_similar_cropped_img = load_image(most_similar_cropped_img_path)
-    # Then save (paste)
-    save_image(destination_path, most_similar_cropped_img)
-
-
-def save_detected_faces(
-    faces: list, IMG_DIR_NAME: str, IMG_FILE_NAME: str, full_img_path: str
-):
+def save_detected_faces(faces: list):
     cropped_img_db_name = "cropped-face-db"
     current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
         cropped_img_db_name, IMG_DIR_NAME, IMG_FILE_NAME + "/"
@@ -52,7 +46,7 @@ def save_detected_faces(
         os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
 
     # load image here so I simply crop this image for every detected face
-    img = load_image(full_img_path)
+    img = load_image(FULL_IMG_PATH)
     if img is None:
         logging.error("Failed to load image, aborting face detection.")
         return None  # Exit the function if image is not loaded
@@ -137,7 +131,7 @@ def find_most_similar_face(
 
 
 def detect_multiple_faces(
-    IMG_DB_NAME: str, IMG_DIR_NAME: str, IMG_FILE_NAME: str, full_img_path: str
+    IMG_DB_NAME: str, IMG_DIR_NAME: str, IMG_FILE_NAME: str, FULL_IMG_PATH: str
 ):
     """
     The following list contains all available "backends" provided by deepface.
@@ -158,18 +152,14 @@ def detect_multiple_faces(
     ]
 
     faces = DeepFace.extract_faces(
-        img_path=full_img_path,
+        img_path=FULL_IMG_PATH,
         detector_backend="retinaface",
     )
     return faces
 
 
-# Combine the directory with the base path
-full_img_path = os.path.join(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME)
-faces = detect_multiple_faces(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME, full_img_path)
-detected_faces_info = save_detected_faces(
-    faces, IMG_DIR_NAME, IMG_FILE_NAME, full_img_path
-)
+faces = detect_multiple_faces(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME, FULL_IMG_PATH)
+detected_faces_info = save_detected_faces(faces)
 
 # Check if the function returned None (indicating an error)
 if detected_faces_info is None:
@@ -192,8 +182,10 @@ else:
             cropped_img_db_name, IMG_DIR_NAME, "cropped_" + IMG_FILE_NAME
         )
 
-        save_most_similar_face(
-            most_similar_cropped_img_path, new_most_similar_cropped_img_path
-        )
+        # Load most similar cropped image from directory (copy)
+        most_similar_cropped_img = load_image(most_similar_cropped_img_path)
+
+        # Then save (paste)
+        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
 logging.info("Code executed without crashing.")
