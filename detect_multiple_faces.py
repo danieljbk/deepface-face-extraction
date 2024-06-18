@@ -1,21 +1,20 @@
 import os
 import cv2
 from deepface import DeepFace
+import logging
 
-
-def print_status(status):
-    print()
-    print(status)
-    print()
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 # returns True or False depending on whether image was saved
 def save_image(img_destination_path: str, img):
     success = cv2.imwrite(img_destination_path, img)
     if success:
-        print_status(f"Saved photo to {img_destination_path}")
+        logging.info(f"Saved photo to {img_destination_path}")
     else:
-        print_status(f"Failed to save photo to {img_destination_path}")
+        logging.error(f"Failed to save photo to {img_destination_path}")
 
 
 def load_image(full_img_path):
@@ -25,8 +24,7 @@ def load_image(full_img_path):
     # NOTE: if I use "not img", throws the following error...
     # "ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()"
     if img is None:  # TO-DO: Exit or handle error appropriately
-        print_status(f"Error: Failed to load image from {full_img_path}.")
-        return
+        logging.error(f"Error: Failed to load image from {full_img_path}.")
 
     return img
 
@@ -61,7 +59,7 @@ def save_detected_faces(
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
-            print_status("Error: Cropped image is empty.")
+            logging.error("Error: Cropped image is empty.")
         else:
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
@@ -112,19 +110,19 @@ def find_most_similar_face(
         # into a batch of photos for the face recognized as "old photos of A" v.s. "recent photos of A"
         most_similar_df = dfs.loc[0]
 
-        print_status("Found at least 1 face similar to reference face.")
+        logging.info("Found at least 1 face similar to reference face.")
 
         # extract path data from dataframes
         most_similar_cropped_img_path = most_similar_df["identity"]
 
         return most_similar_cropped_img_path
     except IndexError as e:
-        print_status(
+        logging.error(
             "No similar faces found, or an error occurred in the DataFrame indexing."
         )
         return None
     except Exception as e:
-        print_status(f"Unexpected error when finding most similar face: {e}")
+        logging.error(f"Unexpected error when finding most similar face: {e}")
         return None
 
 
@@ -196,4 +194,4 @@ if most_similar_cropped_img_path:
         most_similar_cropped_img_path, new_most_similar_cropped_img_path
     )
 
-print_status("Code executed without crashing.")
+logging.info("Code executed without crashing.")
