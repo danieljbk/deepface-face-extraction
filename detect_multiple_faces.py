@@ -5,7 +5,13 @@ import cv2
 
 # returns True or False depending on whether image was saved
 def save_image(img_destination_path: str, img):
-    return cv2.imwrite(img_destination_path, img)
+    status = cv2.imwrite(img_destination_path, img)
+    (
+        print(f"Saved photo to {img_destination_path}")
+        if status
+        else print(f"Failed to save photo to {img_destination_path}")
+    )
+    return status
 
 
 def save_detected_faces(
@@ -21,13 +27,13 @@ def save_detected_faces(
         return "Failed to load image from full_img_path."
 
     cropped_img_db_name = "cropped-face-db"
-    cropped_img_db_path = os.path.join(
+    current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
         cropped_img_db_name, img_directory, img_filename + "/"
     )  # the slash is added to ensure this is recognized as a directory path and not a file
 
     # Ensure the output directory exists before saving
-    if not os.path.exists(cropped_img_db_path):
-        os.makedirs(cropped_img_db_path)
+    if not os.path.exists(current_cropped_faces_dir_in_cropped_img_db_path):
+        os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
 
     # used later to distinguish images if there was more than 1 face
     count = 1
@@ -49,7 +55,7 @@ def save_detected_faces(
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
             cropped_img_full_path = os.path.join(
-                cropped_img_db_path, cropped_img_filename
+                current_cropped_faces_dir_in_cropped_img_db_path, cropped_img_filename
             )
 
             # Save the cropped image
@@ -59,19 +65,30 @@ def save_detected_faces(
             else:
                 count += 1
 
+    return cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path
+
+
+def find_most_similar_face(
+    reference_img_filename,
+    img_db_name,
+    img_directory,
+    img_filename,
+    cropped_img_db_name,
+    current_cropped_faces_dir_in_cropped_img_db_path,
+):
     # NOTE:
-    # the following takes care of the case where there were multiple faces in the photo.
+    # Yes, the following takes care of the case where there were multiple faces in the photo.
     # even if there was only one face (most likely scenario), it will just choose that one.
 
-    # this image is what the faces are compared to. this image must be good quality.
-    reference_img_filename = "2.jpg"
-    reference_img_path = os.path.join("face-db", img_directory, reference_img_filename)
+    reference_img_path = os.path.join(
+        img_db_name, img_directory, reference_img_filename
+    )
 
     # keep in mind DeepFace.find will generate a .pkl inside the directory.
     # example CLI output: "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
     dfs = DeepFace.find(
         img_path=reference_img_path,
-        db_path=cropped_img_db_path,
+        db_path=current_cropped_faces_dir_in_cropped_img_db_path,
         detector_backend="retinaface",
     )  # these are dataframes, ordered by most similar to least similar
 
@@ -97,7 +114,12 @@ def save_detected_faces(
         print("\nError: could not find any faces similar to the reference face\n")
 
     if similar_face_to_reference_exists:
+        status = "Found at least 1 face similar to face in reference image."
+        print(status)
+
+        # extract path data from dataframes
         most_similar_cropped_img_path = most_similar_df["identity"]
+
         # set destination path (for copying photo)
         new_most_similar_cropped_img_path = os.path.join(
             cropped_img_db_name, img_directory, "cropped_" + img_filename
@@ -121,8 +143,6 @@ def save_detected_faces(
         similar_dfs = dfs[dfs["distance"] < 0.5]
         file_paths = similar_dfs["identity"].tolist()
         """
-
-    return "Success"
 
 
 def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: str):
@@ -151,14 +171,28 @@ def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: st
         detector_backend="retinaface",
     )
 
-    return save_detected_faces(faces, img_directory, img_filename, full_img_path)
+    cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
+        save_detected_faces(faces, img_directory, img_filename, full_img_path)
+    )
+
+    # this image is what the faces are compared to. this image must be good quality.
+    reference_img_filename = "3.jpg"
+
+    find_most_similar_face(
+        reference_img_filename,
+        img_db_name,
+        img_directory,
+        img_filename,
+        cropped_img_db_name,
+        current_cropped_faces_dir_in_cropped_img_db_path,
+    )
+
+    print("Code executed without crashing.")
 
 
 # Define the image path and filename
 img_db_name = "face-db"
 img_directory = "chaewon-test"
-img_filename = "3.jpg"
+img_filename = "angled.jpg"
 
-# returns string describing the outcome (error vs success)
-outcome = detect_multiple_faces(img_db_name, img_directory, img_filename)
-print(outcome)
+detect_multiple_faces(img_db_name, img_directory, img_filename)
