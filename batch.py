@@ -5,7 +5,7 @@ import cv2
 
 # Define the image path and filename
 img_directory = "chaewon-test"
-img_filename = "multiple.jpg"
+img_filename = "2.jpg"
 
 # Combine the directory with the base path
 full_img_path = os.path.join("face-db", img_directory, img_filename)
@@ -81,46 +81,42 @@ else:
     # this image is what the faces are compared to. this image must be good quality.
     reference_img_path = os.path.join("face-db", img_directory, "3.jpg")
 
-    # these are dataframes.
-    # ordered by most similar to least similar
+    # these are dataframes, ordered by most similar to least similar
     dfs = DeepFace.find(
         img_path=reference_img_path,
         db_path=cropped_img_db_path,
         detector_backend="retinaface",
     )
+    # keep in mind DeepFace.find will generate a .pkl inside the directory.
+    # example CLI output: "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
 
-    prune_option = "single"
+    # for some reason, these dataframes are wrapped in a list.
+    # I don't get why. The dataframes are already a list. How could there be multiple dataframe outputs?
+    dfs = dfs[0]
 
-    # either select the single-most similar face...
-    if prune_option == "single":
-        # for some reason, the dataframes are wrapped in a list.
-        dfs = dfs[0]
+    # useful for most cases, where the individual will only appear once in the photo
+    most_similar_df = dfs.loc[0]
+    most_similar_cropped_img_path = most_similar_df["identity"]
+    new_most_similar_cropped_img_path = os.path.join(
+        cropped_img_db_name, img_directory, "cropped_" + img_filename
+    )
 
-        # useful for most cases, where the individual will only appear once in the photo
-        most_similar_df = dfs.loc[0]
-        most_similar_cropped_img_path = most_similar_df["identity"]
+    # Load the image from the predefined path
+    most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
 
-        new_most_similar_cropped_img_path = os.path.join(
-            cropped_img_db_name, img_directory, "cropped_" + img_filename
-        )
+    # Save the cropped image
+    success = cv2.imwrite(new_most_similar_cropped_img_path, most_similar_cropped_img)
+    if success:
+        print("Image successfully saved.")
+        count += 1
+    else:
+        print("Failed to save image.")
 
-        # Load the image from the predefined path
-        most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
-
-        # Save the cropped image
-        success = cv2.imwrite(
-            new_most_similar_cropped_img_path, most_similar_cropped_img
-        )
-        if success:
-            print("Image successfully saved.")
-            count += 1
-        else:
-            print("Failed to save image.")
-
-    # ...or select all faces that had a similarity distance of less than 0.5
-    elif prune_option == "multiple":
-        # useful if the photo was a collage of multiple photos of the specific individual
-        similar_dfs = dfs[dfs["distance"] < 0.5]
-        file_paths = similar_dfs["identity"].tolist()
-
-        # TO-DO (skipped for now bc unnecessary)
+    """
+    # TO-DO: Edge Case (skipped for now bc unnecessary)
+    # if the photo was a collage of multiple photos of the specific individual
+    # select all faces that had a similarity distance of less than 0.5
+    
+    similar_dfs = dfs[dfs["distance"] < 0.5]
+    file_paths = similar_dfs["identity"].tolist()
+    """
