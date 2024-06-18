@@ -3,7 +3,7 @@
 Takes in images of humans, outputs only the faces.
 To be used to clean up the image dataset before feeding to DreamBooth.
 
-## Installation Requirements (WIP)
+## Installation Requirements (For the Jupyter Notebooks)
 
 Before running this notebook, ensure the following packages are installed by running these commands in your command line interface (CLI):
 
