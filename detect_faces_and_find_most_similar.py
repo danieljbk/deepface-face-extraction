@@ -3,13 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import cv2
 
-# Define the image path and filename
-img_directory = "chaewon-test"
-img_filename = "2.jpg"
-
-# Combine the directory with the base path
-full_img_path = os.path.join("face-db", img_directory, img_filename)
-
+# these are all available "backends" provided by deepface.
 backends = [
     "opencv",
     "ssd",
@@ -23,6 +17,16 @@ backends = [
     "centerface",
 ]
 
+# however, "retinaface" is the most capable one.
+# the creator of deepface also recommended "mtcnn", but "retinaface" is great so we will stick to it.
+
+# Define the image path and filename
+img_directory = "chaewon-test"
+img_filename = "2.jpg"
+
+# Combine the directory with the base path
+full_img_path = os.path.join("face-db", img_directory, img_filename)
+
 faces = DeepFace.extract_faces(
     img_path=full_img_path,
     detector_backend="retinaface",
@@ -33,7 +37,7 @@ img = cv2.imread(full_img_path)
 
 if img is None:
     print("Failed to load image.")
-    # To-do: Exit or handle error appropriately
+    # TO-DO: Exit or handle error appropriately
 else:
     cropped_img_db_name = "cropped-face-db"
     cropped_img_db_path = os.path.join(
