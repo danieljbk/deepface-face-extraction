@@ -1,6 +1,7 @@
 import os
 import cv2
 import logging
+from deepface import DeepFace
 from utils import load_image, save_image, ensure_directory_exists
 from config import (
     BASE_IMG_DB_NAME,
@@ -10,14 +11,10 @@ from config import (
     CROPPED_IMG_DB_NAME,
     BASE_IMG_FILE_PATH,
     REFERENCE_IMG_FILE_PATH,
+    configure_logging,
 )
-from deepface import DeepFace
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
-)
+configure_logging()
 
 
 def save_detected_faces(faces: list):
