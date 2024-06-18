@@ -11,27 +11,29 @@ def print_status(status):
 
 # returns True or False depending on whether image was saved
 def save_image(img_destination_path: str, img):
-    status = cv2.imwrite(img_destination_path, img)
-    (
+    success = cv2.imwrite(img_destination_path, img)
+    if success:
         print_status(f"Saved photo to {img_destination_path}")
-        if status
-        else print_status(f"Failed to save photo to {img_destination_path}")
-    )
-    return status
+    else:
+        print_status(f"Failed to save photo to {img_destination_path}")
 
 
-def save_detected_faces(
-    faces: list, img_directory: str, img_filename: str, full_img_path: str
-):
+def load_image(full_img_path):
     # Load the image from the predefined path
     img = cv2.imread(full_img_path)
 
     # NOTE: if I use "not img", throws the following error...
     # "ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()"
     if img is None:  # TO-DO: Exit or handle error appropriately
-        print_status("Error: Failed to load image from full_img_path.")
+        print_status(f"Error: Failed to load image from {full_img_path}.")
         return
 
+    return img
+
+
+def save_detected_faces(
+    faces: list, img_directory: str, img_filename: str, full_img_path: str
+):
     cropped_img_db_name = "cropped-face-db"
     current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
         cropped_img_db_name, img_directory, img_filename + "/"
@@ -41,7 +43,10 @@ def save_detected_faces(
     if not os.path.exists(current_cropped_faces_dir_in_cropped_img_db_path):
         os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
 
-    # used later to distinguish images if there was more than 1 face
+    # load image here so I simply crop this image for every detected face
+    img = load_image(full_img_path)
+
+    # used to create unique filename for each face (1.png, 2.png, etc.)
     count = 1
     for face in faces:
         # Extract facial area data from deepface results
@@ -64,12 +69,8 @@ def save_detected_faces(
                 current_cropped_faces_dir_in_cropped_img_db_path, cropped_img_filename
             )
 
-            # Save the cropped image
-            success = save_image(cropped_img_full_path, cropped_img)
-            if not success:
-                print_status("Error: Failed to save cropped image.")
-            else:
-                count += 1
+            save_image(cropped_img_full_path, cropped_img)
+            count += 1
 
     return cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path
 
@@ -121,20 +122,10 @@ def find_most_similar_face(
         print_status("Error: Could not find any faces similar to the reference face.")
 
 
-def save_most_similar_face(
-    img_directory,
-    img_filename,
-    most_similar_cropped_img_path,
-    cropped_img_db_name,
-):
-    # set destination path (for copying photo)
-    new_most_similar_cropped_img_path = os.path.join(
-        cropped_img_db_name, img_directory, "cropped_" + img_filename
-    )
-
+def save_most_similar_face(most_similar_cropped_img_path, destination_path):
     # Load the most similar cropped image from directory (copy) then save (paste)
-    most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
-    save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+    most_similar_cropped_img = load_image(most_similar_cropped_img_path)
+    save_image(destination_path, most_similar_cropped_img)
 
 
 def detect_multiple_faces(
@@ -190,11 +181,13 @@ most_similar_cropped_img_path = find_most_similar_face(
 )
 
 if most_similar_cropped_img_path:
+    # set destination path (for copying photo)
+    new_most_similar_cropped_img_path = os.path.join(
+        cropped_img_db_name, img_directory, "cropped_" + img_filename
+    )
+
     save_most_similar_face(
-        img_directory,
-        img_filename,
-        most_similar_cropped_img_path,
-        cropped_img_db_name,
+        most_similar_cropped_img_path, new_most_similar_cropped_img_path
     )
 
 print_status("Code executed without crashing.")
