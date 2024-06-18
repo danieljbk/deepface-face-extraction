@@ -13,9 +13,11 @@ logging.basicConfig(
 BASE_IMG_DB_NAME = "face-db"
 BASE_IMG_DIR_NAME = "chaewon-test"
 BASE_IMG_FILE_NAME = "2.jpg"
-BASE_IMG_PATH = os.path.join(BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME)
-
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
+
+BASE_IMG_FILE_PATH = os.path.join(
+    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME
+)
 REFERENCE_IMG_FILE_PATH = os.path.join(
     BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
 )
@@ -48,7 +50,7 @@ def save_detected_faces(faces: list):
         os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
 
     # load image here so I simply crop this image for every detected face
-    img = load_image(BASE_IMG_PATH)
+    img = load_image(BASE_IMG_FILE_PATH)
     if img is None:
         logging.error("Failed to load image, aborting face detection.")
         return None  # Exit the function if image is not loaded
@@ -97,7 +99,7 @@ def find_most_similar_face(
     # TODO: Investigate why DeepFace.find returns this single dataframe in a list.
     dfs = dfs[0]
 
-    # useful for most cases, where the individual will only appear once in the photo
+    # Assumes individual's face appears no more than once in photo (no collages allowed)
     try:
         # dfs could be an empty dataframe here...
         # if deepface determined that NONE of the faces were similar to the reference.
@@ -145,7 +147,7 @@ def detect_multiple_faces():
     ]
 
     faces = DeepFace.extract_faces(
-        img_path=BASE_IMG_PATH,
+        img_path=BASE_IMG_FILE_PATH,
         detector_backend="retinaface",
     )
 
