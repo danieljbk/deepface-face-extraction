@@ -128,57 +128,34 @@ def find_most_similar_face(
 
 
 def detect_multiple_faces():
-    """
-    The following list contains all available "backends" provided by deepface.
-    "retinaface" is the most capable one for face detection.
-    the creator of deepface also recommended "mtcnn", but "retinaface" is great so we will stick to it.
-    """
-    backends = [
-        "opencv",
-        "ssd",
-        "dlib",
-        "mtcnn",
-        "fastmtcnn",
-        "retinaface",
-        "mediapipe",
-        "yolov8",
-        "yunet",
-        "centerface",
-    ]
-
-    faces = DeepFace.extract_faces(
+    # The most capable "backend" provided by DeepFace for face detection is "retinaface". The creator of deepface alternatively recommends "mtcnn".
+    return DeepFace.extract_faces(
         img_path=BASE_IMG_FILE_PATH,
         detector_backend="retinaface",
     )
-
-    return faces
 
 
 faces = detect_multiple_faces()
 detected_faces_info = save_detected_faces(faces)
 
-# Check if the function returned None (indicating an error)
 if detected_faces_info is None:
-    logging.error("Failed to detect and save faces, aborting further processing.")
+    logging.error(
+        "Failed to detect and save faces from BASE_IMG, aborting further processing."
+    )
 else:
     cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
         detected_faces_info
     )
-
     most_similar_cropped_img_path = find_most_similar_face(
         current_cropped_faces_dir_in_cropped_img_db_path,
     )
-
     if most_similar_cropped_img_path:
         # set destination path (for copying photo)
         new_most_similar_cropped_img_path = os.path.join(
             cropped_img_db_name, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
         )
-
-        # Load most similar cropped image from directory (copy)
+        # Copy & paste the most similar cropped image
         most_similar_cropped_img = load_image(most_similar_cropped_img_path)
-
-        # Then save (paste)
         save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
 logging.info("Code executed without crashing.")
