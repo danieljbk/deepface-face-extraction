@@ -4,12 +4,9 @@ import logging
 from deepface import DeepFace
 from utils import load_image, save_image, ensure_directory_exists
 from config import (
-    BASE_IMG_DB_NAME,
-    BASE_IMG_DIR_NAME,
-    BASE_IMG_FILE_NAME,
-    REFERENCE_IMG_FILE_NAME,
-    CROPPED_IMG_DB_NAME,
     BASE_IMG_FILE_PATH,
+    BASE_IMG_DIR_NAME,
+    CROPPED_IMG_DB_NAME,
     REFERENCE_IMG_FILE_PATH,
     configure_logging,
 )
@@ -17,14 +14,16 @@ from config import (
 configure_logging()
 
 
-def save_detected_faces(faces: list):
+def save_detected_faces(faces: list, img_path: str):
     detected_faces_dir = os.path.join(
-        CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME + "/"
+        CROPPED_IMG_DB_NAME,
+        BASE_IMG_DIR_NAME,
+        os.path.basename(img_path) + "/",
     )  # the "/" is added to ensure this is recognized as a directory path and not a file
     ensure_directory_exists(detected_faces_dir)
 
     # load image here so I simply crop this image for every detected face
-    img = load_image(BASE_IMG_FILE_PATH)
+    img = load_image(img_path)
     if img is None:
         logging.error("Failed to load image, aborting face detection.")
         return None  # Exit the function if image is not loaded
@@ -82,9 +81,9 @@ def find_most_similar_face(
         logging.info("Found at least 1 face similar to reference face.")
 
         # extract path data from dataframes
-        most_similar_cropped_img_path = most_similar_df["identity"]
+        most_similar_face_img_path = most_similar_df["identity"]
 
-        return most_similar_cropped_img_path
+        return most_similar_face_img_path
     except IndexError as e:
         logging.error(
             "No similar faces found, or an error occurred in the DataFrame indexing."
@@ -95,34 +94,52 @@ def find_most_similar_face(
         return None
 
 
-def detect_multiple_faces():
+def detect_faces(img_path):
     # The most capable "backend" provided by DeepFace for face detection is "retinaface". The creator of deepface alternatively recommends "mtcnn".
     return DeepFace.extract_faces(
-        img_path=BASE_IMG_FILE_PATH,
+        img_path=img_path,
         detector_backend="retinaface",
     )
 
 
-if __name__ == "__main__":
-    faces = detect_multiple_faces()
-    detected_faces_info = save_detected_faces(faces)
+def process_single_image(img_path):
+    faces = detect_faces(img_path)
+    if faces is None:
+        logging.error("Failed to detect faces in image, aborting further processing.")
+        return
 
-    if detected_faces_info is None:
+    detected_faces_dir = save_detected_faces(faces, img_path)
+    if detected_faces_dir is None:
         logging.error(
             "Failed to detect and save faces from BASE_IMG, aborting further processing."
         )
-    else:
-        detected_faces_dir = detected_faces_info
-        most_similar_cropped_img_path = find_most_similar_face(
-            detected_faces_dir,
-        )
-        if most_similar_cropped_img_path:
-            # set destination path (for copying photo)
-            new_most_similar_cropped_img_path = os.path.join(
-                CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
-            )
-            # Copy & paste the most similar cropped image
-            most_similar_cropped_img = load_image(most_similar_cropped_img_path)
-            save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+        return
 
-    logging.info("Processing completed.")
+    # Find the most similar face
+    most_similar_face_img_path = find_most_similar_face(
+        detected_faces_dir,
+    )
+    if most_similar_face_img_path:
+        logging.info(f"Most similar face found at: {most_similar_face_img_path}")
+
+        # Set the destination path for copying the photo
+        new_most_similar_cropped_img_path = os.path.join(
+            CROPPED_IMG_DB_NAME,
+            BASE_IMG_DIR_NAME,
+            "cropped_" + os.path.basename(img_path),
+        )
+
+        # Copy & save the most similar cropped image
+        most_similar_cropped_img = load_image(most_similar_face_img_path)
+        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+        logging.info(
+            f"Copied and saved the most similar face to: {new_most_similar_cropped_img_path}"
+        )
+
+    logging.info(f"Processing of image ({img_path}) complete.")
+
+
+# For standalone testing of this file.
+if __name__ == "__main__":
+    test_img_path = BASE_IMG_FILE_PATH  # Specify a path or use an example from config
+    process_single_image(test_img_path)

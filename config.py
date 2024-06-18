@@ -4,7 +4,7 @@ import logging
 # Constants
 BASE_IMG_DB_NAME = "face-db"
 BASE_IMG_DIR_NAME = "chaewon-test"
-BASE_IMG_FILE_NAME = "2.jpg"
+BASE_IMG_FILE_NAME = "1.jpg"
 
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # Faces will be compared against this image, which therefore must be high quality.
 
