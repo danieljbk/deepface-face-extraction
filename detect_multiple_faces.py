@@ -4,7 +4,9 @@ from deepface import DeepFace
 import logging
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
 )
 
 
@@ -162,7 +164,10 @@ def detect_multiple_faces(
 # Define the image path and filename
 img_db_name = "face-db"
 img_directory = "chaewon-test"
-img_filename = "angled.jpg"
+img_filename = "1.jpg"
+
+# this image is what the faces are compared to. this image must be good quality.
+reference_img_filename = "3.jpg"
 
 # Combine the directory with the base path
 full_img_path = os.path.join(img_db_name, img_directory, img_filename)
@@ -180,9 +185,6 @@ else:
         detected_faces_info
     )
 
-    # this image is what the faces are compared to. this image must be good quality.
-    reference_img_filename = "3.jpg"
-
     most_similar_cropped_img_path = find_most_similar_face(
         reference_img_filename,
         img_db_name,
@@ -199,3 +201,5 @@ else:
         save_most_similar_face(
             most_similar_cropped_img_path, new_most_similar_cropped_img_path
         )
+
+logging.info("Code executed without crashing.")
