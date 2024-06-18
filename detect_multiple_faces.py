@@ -86,8 +86,7 @@ def save_detected_faces(
     return cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path
 
 
-# NOTE: The following considers cases where multiple faces were detected in the photo.
-# If there was only 1 face (most likely scenario), it will just choose that one.
+# Handles multiple face detections by selecting the most similar face (lowest distance value)
 def find_most_similar_face(
     REFERENCE_IMG_FILE_NAME,
     IMG_DB_NAME,
@@ -98,8 +97,7 @@ def find_most_similar_face(
         IMG_DB_NAME, IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
     )
 
-    # keep in mind DeepFace.find will generate a .pkl inside the directory.
-    # Example CLI output:
+    # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
     # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
     dfs = DeepFace.find(
         img_path=reference_img_path,
@@ -107,8 +105,7 @@ def find_most_similar_face(
         detector_backend="retinaface",
     )  # these are dataframes, ordered by most similar to least similar
 
-    # for some reason, these dataframes are wrapped in a list.
-    # I don't get why. The dataframes are already a list. Why would there be multiple dataframe outputs?
+    # TODO: Investigate why DeepFace.find returns this single dataframe in a list.
     dfs = dfs[0]
 
     # useful for most cases, where the individual will only appear once in the photo
