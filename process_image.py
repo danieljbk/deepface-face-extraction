@@ -12,7 +12,7 @@ from config import (
 )
 
 
-def save_detected_faces(faces: list, img_path: str):
+def crop_and_save_detected_faces(faces: list, img_path: str):
     detected_faces_dir = os.path.join(
         CROPPED_IMG_DB_NAME,
         BASE_IMG_DIR_NAME,
@@ -110,7 +110,7 @@ def process_single_image(img_path):
         )
         return
 
-    detected_faces_dir = save_detected_faces(faces, img_path)
+    detected_faces_dir = crop_and_save_detected_faces(faces, img_path)
     if detected_faces_dir is None:
         logging.error(
             f"Failed to save detected faces from ({img_path}), aborting further processing."
