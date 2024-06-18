@@ -5,7 +5,7 @@ import logging
 
 def ensure_directory_exists(path: str):
     if not os.path.exists(path):
-        logging.info(f"Directory did not exist at ({path}), attempting to create...")
+        logging.info(f"Creating directory at: ({path})")
         os.makedirs(path)
 
 

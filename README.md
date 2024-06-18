@@ -18,14 +18,6 @@ pip install matplotlib
 
 ## TO-DO:
 
-### #1
-
-Currently, the code feeds in a single image, then faces are extracted from it.
-
-I need to be able to feed in a directory, and then it runs the current process for all images.
-
-I'll also need to do some clean-up work to ensure output structure.
-
 ### #2
 
 I need to incorporate the confidence/distance attribute.
@@ -55,3 +47,15 @@ Alternative method of selecting similar faces from recognized faces in photo.
 similar_dfs = dfs[dfs["distance"] < 0.5]
 file_paths = similar_dfs["identity"].tolist()
 ```
+
+### #5
+
+Need to create info files inside each image directory specifying data that can be accessed in the future to avoid reprocessing.
+
+This includes data like:
+
+- the reference file used
+- dimensions of reference photo
+- the X, Y, W, H coords of each cropped photo (relative to reference photo)
+- all logs pertaining to the processing of this image
+- etc.
