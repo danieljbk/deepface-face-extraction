@@ -13,10 +13,12 @@ logging.basicConfig(
 BASE_IMG_DB_NAME = "face-db"
 BASE_IMG_DIR_NAME = "chaewon-test"
 BASE_IMG_FILE_NAME = "2.jpg"
-BASE_IMG_FULL_PATH = os.path.join(
-    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME
-)
+BASE_IMG_PATH = os.path.join(BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME)
+
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
+REFERENCE_IMG_FILE_PATH = os.path.join(
+    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
+)
 
 
 def load_image(path):
@@ -46,7 +48,7 @@ def save_detected_faces(faces: list):
         os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
 
     # load image here so I simply crop this image for every detected face
-    img = load_image(BASE_IMG_FULL_PATH)
+    img = load_image(BASE_IMG_PATH)
     if img is None:
         logging.error("Failed to load image, aborting face detection.")
         return None  # Exit the function if image is not loaded
@@ -82,19 +84,12 @@ def save_detected_faces(faces: list):
 
 # Handles multiple face detections by selecting the most similar face (lowest distance value)
 def find_most_similar_face(
-    REFERENCE_IMG_FILE_NAME,
-    BASE_IMG_DB_NAME,
-    BASE_IMG_DIR_NAME,
     current_cropped_faces_dir_in_cropped_img_db_path,
 ):
-    reference_img_path = os.path.join(
-        BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
-    )
-
     # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
     # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
     dfs = DeepFace.find(
-        img_path=reference_img_path,
+        img_path=REFERENCE_IMG_FILE_PATH,
         db_path=current_cropped_faces_dir_in_cropped_img_db_path,
         detector_backend="retinaface",
     )  # these are dataframes, ordered by most similar to least similar
@@ -130,12 +125,7 @@ def find_most_similar_face(
         return None
 
 
-def detect_multiple_faces(
-    BASE_IMG_DB_NAME: str,
-    BASE_IMG_DIR_NAME: str,
-    BASE_IMG_FILE_NAME: str,
-    BASE_IMG_FULL_PATH: str,
-):
+def detect_multiple_faces():
     """
     The following list contains all available "backends" provided by deepface.
     "retinaface" is the most capable one for face detection.
@@ -155,15 +145,14 @@ def detect_multiple_faces(
     ]
 
     faces = DeepFace.extract_faces(
-        img_path=BASE_IMG_FULL_PATH,
+        img_path=BASE_IMG_PATH,
         detector_backend="retinaface",
     )
+
     return faces
 
 
-faces = detect_multiple_faces(
-    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME, BASE_IMG_FULL_PATH
-)
+faces = detect_multiple_faces()
 detected_faces_info = save_detected_faces(faces)
 
 # Check if the function returned None (indicating an error)
@@ -175,9 +164,6 @@ else:
     )
 
     most_similar_cropped_img_path = find_most_similar_face(
-        REFERENCE_IMG_FILE_NAME,
-        BASE_IMG_DB_NAME,
-        BASE_IMG_DIR_NAME,
         current_cropped_faces_dir_in_cropped_img_db_path,
     )
 
