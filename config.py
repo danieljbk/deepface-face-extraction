@@ -6,7 +6,7 @@ BASE_IMG_DB_NAME = "face-db"
 BASE_IMG_DIR_NAME = "chaewon"
 BASE_IMG_FILE_NAME = "2023-09-28_16-00-46_UTC_8.jpg"
 
-REFERENCE_IMG_FILE_NAME = "reference.jpg"  # Faces will be compared against this image, which therefore must be high quality.
+REFERENCE_IMG_FILE_NAME = "reference_a.jpg"  # Faces will be compared against this image, which therefore must be high quality.
 
 CROPPED_IMG_DB_NAME = "cropped-face-db"
 
