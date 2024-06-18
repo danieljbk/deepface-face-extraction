@@ -41,3 +41,17 @@ It could help to use the distance attribute to filter out low quality images if 
 ### #3
 
 Speaking of low quality, the dimensions of the cropped images communicate their quality. I might want to consider trashing any output photos that are smaller than a set number of pixels. This is important because DreamBooth wants as high quality photos as possible. Keep in mind that size does not necessarily correlate to quality. Meaning, the picture could be blurry but the size could be big. This is equally bad as the picture being clear but the size being tiny.
+
+### #4
+
+Copied from detect_multiple_faces.py.
+Alternative method of selecting similar faces from recognized faces in photo.
+
+```python
+# TO-DO: Edge Case (skipped for now bc unnecessary)
+# if the photo was a collage of multiple photos of the specific individual
+# select all faces that had a similarity distance of less than 0.5
+
+similar_dfs = dfs[dfs["distance"] < 0.5]
+file_paths = similar_dfs["identity"].tolist()
+```

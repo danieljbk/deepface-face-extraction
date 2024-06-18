@@ -125,24 +125,11 @@ def find_most_similar_face(
             cropped_img_db_name, img_directory, "cropped_" + img_filename
         )
 
-        # Load the image from the predefined path
+        # Load the most similar image from directory (copy)
         most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
 
-        # Save the cropped image
-        success = save_image(
-            new_most_similar_cropped_img_path, most_similar_cropped_img
-        )
-        if not success:
-            print("Failed to save cropped image.")
-
-        """
-        # TO-DO: Edge Case (skipped for now bc unnecessary)
-        # if the photo was a collage of multiple photos of the specific individual
-        # select all faces that had a similarity distance of less than 0.5
-        
-        similar_dfs = dfs[dfs["distance"] < 0.5]
-        file_paths = similar_dfs["identity"].tolist()
-        """
+        # Save the cropped image (paste)
+        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
 
 def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: str):
