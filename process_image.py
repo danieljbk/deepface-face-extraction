@@ -11,8 +11,6 @@ from config import (
     configure_logging,
 )
 
-configure_logging()
-
 
 def save_detected_faces(faces: list, img_path: str):
     detected_faces_dir = os.path.join(
@@ -145,5 +143,6 @@ def process_single_image(img_path):
 
 # For standalone testing of this file.
 if __name__ == "__main__":
-    test_img_path = BASE_IMG_FILE_PATH  # Specify a path or use an example from config
+    configure_logging()
+    test_img_path = BASE_IMG_FILE_PATH
     process_single_image(test_img_path)

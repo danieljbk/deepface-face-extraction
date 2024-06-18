@@ -5,8 +5,6 @@ from process_image import (
     process_single_image,
 )
 
-configure_logging()
-
 
 def process_directory(directory):
     for root, dirs, files in os.walk(directory):
@@ -17,6 +15,8 @@ def process_directory(directory):
 
 
 if __name__ == "__main__":
+    configure_logging()
+
     BASE_IMG_DIR_PATH = os.path.join(BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME)
 
     process_directory(BASE_IMG_DIR_PATH)
