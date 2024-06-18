@@ -18,14 +18,10 @@ def save_image(img_destination_path: str, img):
 
 
 def load_image(full_img_path):
-    # Load the image from the predefined path
     img = cv2.imread(full_img_path)
-
-    # NOTE: if I use "not img", throws the following error...
-    # "ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()"
-    if img is None:  # TO-DO: Exit or handle error appropriately
+    if img is None:
         logging.error(f"Error: Failed to load image from {full_img_path}.")
-
+        return None  # Explicitly return None to signal failure
     return img
 
 
