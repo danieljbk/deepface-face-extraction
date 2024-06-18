@@ -118,8 +118,14 @@ def find_most_similar_face(
         most_similar_cropped_img_path = most_similar_df["identity"]
 
         return most_similar_cropped_img_path
-    except:
-        print_status("Error: Could not find any faces similar to the reference face.")
+    except IndexError as e:
+        print_status(
+            "No similar faces found, or an error occurred in the DataFrame indexing."
+        )
+        return None
+    except Exception as e:
+        print_status(f"Unexpected error when finding most similar face: {e}")
+        return None
 
 
 def save_most_similar_face(most_similar_cropped_img_path, destination_path):
