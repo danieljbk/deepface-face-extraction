@@ -1,6 +1,6 @@
-from deepface import DeepFace
 import os
 import cv2
+from deepface import DeepFace
 
 
 def print_status(status):
@@ -137,7 +137,9 @@ def save_most_similar_face(
     save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
 
-def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: str):
+def detect_multiple_faces(
+    img_db_name: str, img_directory: str, img_filename: str, full_img_path: str
+):
     """
     The following list contains all available "backends" provided by deepface.
     "retinaface" is the most capable one for face detection.
@@ -156,36 +158,11 @@ def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: st
         "centerface",
     ]
 
-    # Combine the directory with the base path
-    full_img_path = os.path.join(img_db_name, img_directory, img_filename)
     faces = DeepFace.extract_faces(
         img_path=full_img_path,
         detector_backend="retinaface",
     )
-
-    cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
-        save_detected_faces(faces, img_directory, img_filename, full_img_path)
-    )
-
-    # this image is what the faces are compared to. this image must be good quality.
-    reference_img_filename = "3.jpg"
-
-    most_similar_cropped_img_path = find_most_similar_face(
-        reference_img_filename,
-        img_db_name,
-        img_directory,
-        current_cropped_faces_dir_in_cropped_img_db_path,
-    )
-
-    if most_similar_cropped_img_path:
-        save_most_similar_face(
-            img_directory,
-            img_filename,
-            most_similar_cropped_img_path,
-            cropped_img_db_name,
-        )
-
-    print_status("Code executed without crashing.")
+    return faces
 
 
 # Define the image path and filename
@@ -193,4 +170,31 @@ img_db_name = "face-db"
 img_directory = "chaewon-test"
 img_filename = "angled.jpg"
 
-detect_multiple_faces(img_db_name, img_directory, img_filename)
+# Combine the directory with the base path
+full_img_path = os.path.join(img_db_name, img_directory, img_filename)
+
+faces = detect_multiple_faces(img_db_name, img_directory, img_filename, full_img_path)
+
+cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
+    save_detected_faces(faces, img_directory, img_filename, full_img_path)
+)
+
+# this image is what the faces are compared to. this image must be good quality.
+reference_img_filename = "3.jpg"
+
+most_similar_cropped_img_path = find_most_similar_face(
+    reference_img_filename,
+    img_db_name,
+    img_directory,
+    current_cropped_faces_dir_in_cropped_img_db_path,
+)
+
+if most_similar_cropped_img_path:
+    save_most_similar_face(
+        img_directory,
+        img_filename,
+        most_similar_cropped_img_path,
+        cropped_img_db_name,
+    )
+
+print_status("Code executed without crashing.")
