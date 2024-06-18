@@ -14,6 +14,7 @@ def load_image(path: str):
     if img is None:
         logging.error(f"Error: Failed to load image from ({path}).")
         return None  # Explicitly return None to signal failure
+
     return img
 
 
@@ -23,3 +24,5 @@ def save_image(path: str, img):
         logging.info(f"Saved photo to ({path})")
     else:
         logging.error(f"Failed to save photo to ({path})")
+
+    return success

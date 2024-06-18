@@ -20,11 +20,14 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     )  # the "/" is added to ensure this is recognized as a directory path and not a file
     ensure_directory_exists(detected_faces_dir)
 
-    # load image here so I simply crop this image for every detected face
+    # load image here so I simply crop this loaded image for every detected face
     img = load_image(img_path)
     if img is None:
         logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
         return None  # Exit the function if image is not loaded
+
+    image_height = img.shape[0]
+    image_width = img.shape[1]
 
     # used to create unique filename for each face (1.png, 2.png, etc.)
     count = 1
@@ -37,6 +40,15 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
             facial_area["w"],
             facial_area["h"],
         )
+
+        # Correcting for out-of-bound coordinates
+        # Because DeepFace adds padding to images, the x or y value can be negative. Let's fix this.
+        # I'll assume the same can happen for the opposite end, where the value exceeds the image area.
+        x = max(0, x)
+        y = max(0, y)
+        w = min(w, image_width - x)
+        h = min(h, image_height - y)
+
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
@@ -47,28 +59,39 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
             cropped_img_full_path = os.path.join(
                 detected_faces_dir, cropped_img_filename
             )
-            save_image(cropped_img_full_path, cropped_img)
-            count += 1
+            success = save_image(cropped_img_full_path, cropped_img)
+            if success:
+                count += 1
 
-    return detected_faces_dir
+    # there was at least one face image saved
+    if count > 1:
+        return detected_faces_dir
+    else:
+        logging.error(
+            f"Unexpected Error: No faces saved to ({detected_faces_dir}), aborting..."
+        )
+        return None
 
 
 # Handles multiple face detections by selecting the most similar face (lowest distance value)
 def find_most_similar_face(
     directory,
 ):
-    # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
-    # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
-    dfs = DeepFace.find(
-        img_path=REFERENCE_IMG_FILE_PATH,
-        db_path=directory,
-        detector_backend="retinaface",
-    )  # these are dataframes, ordered by most similar to least similar
+    try:
+        # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
+        # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
+        dfs = DeepFace.find(
+            img_path=REFERENCE_IMG_FILE_PATH,
+            db_path=directory,
+            detector_backend="retinaface",
+        )  # these are dataframes, ordered by most similar to least similar
 
-    # TODO: Investigate why DeepFace.find returns this single dataframe in a list.
-    dfs = dfs[0]
+        # TODO: Investigate why DeepFace.find returns this single dataframe in a list.
+        dfs = dfs[0]
+    except ValueError as e:
+        logging.error("Failed to find any similar faces, aborting...")
 
-    # Assumes individual's face appears no more than once in photo (no collages allowed)
+    # The following assumes the individual's face appears no more than once in photo (no collages allowed)
     try:
         # dfs could be an empty dataframe here if deepface determined that NONE of the faces were similar to the reference.
         # This is why the reference image is quite important. This can lead to complexity...
@@ -95,11 +118,17 @@ def find_most_similar_face(
 
 
 def detect_faces(img_path):
-    # The most capable "backend" provided by DeepFace for face detection is "retinaface". The creator of deepface alternatively recommends "mtcnn".
-    return DeepFace.extract_faces(
-        img_path=img_path,
-        detector_backend="retinaface",
-    )
+    try:
+        # The most capable "backend" provided by DeepFace for face detection is "retinaface". The creator of deepface alternatively recommends "mtcnn".
+        faces = DeepFace.extract_faces(
+            img_path=img_path,
+            detector_backend="retinaface",
+        )
+    except ValueError as e:
+        logging.error(f"Face could not be detected in ({img_path}).")
+        return None
+
+    return faces
 
 
 def process_single_image(img_path):
