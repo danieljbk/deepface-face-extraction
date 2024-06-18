@@ -9,6 +9,12 @@ logging.basicConfig(
     handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
 )
 
+# Constants
+IMG_DB_NAME = "face-db"
+IMG_DIR_NAME = "chaewon-test"
+IMG_FILE_NAME = "2.jpg"
+REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
+
 
 # returns True or False depending on whether image was saved
 def save_image(img_destination_path: str, img):
@@ -28,11 +34,11 @@ def load_image(full_img_path):
 
 
 def save_detected_faces(
-    faces: list, img_directory: str, img_filename: str, full_img_path: str
+    faces: list, IMG_DIR_NAME: str, IMG_FILE_NAME: str, full_img_path: str
 ):
     cropped_img_db_name = "cropped-face-db"
     current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
-        cropped_img_db_name, img_directory, img_filename + "/"
+        cropped_img_db_name, IMG_DIR_NAME, IMG_FILE_NAME + "/"
     )  # the slash is added to ensure this is recognized as a directory path and not a file
 
     # Ensure the output directory exists before saving
@@ -77,13 +83,13 @@ def save_detected_faces(
 # NOTE: The following considers cases where multiple faces were detected in the photo.
 # If there was only 1 face (most likely scenario), it will just choose that one.
 def find_most_similar_face(
-    reference_img_filename,
-    img_db_name,
-    img_directory,
+    REFERENCE_IMG_FILE_NAME,
+    IMG_DB_NAME,
+    IMG_DIR_NAME,
     current_cropped_faces_dir_in_cropped_img_db_path,
 ):
     reference_img_path = os.path.join(
-        img_db_name, img_directory, reference_img_filename
+        IMG_DB_NAME, IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
     )
 
     # keep in mind DeepFace.find will generate a .pkl inside the directory.
@@ -134,7 +140,7 @@ def save_most_similar_face(most_similar_cropped_img_path, destination_path):
 
 
 def detect_multiple_faces(
-    img_db_name: str, img_directory: str, img_filename: str, full_img_path: str
+    IMG_DB_NAME: str, IMG_DIR_NAME: str, IMG_FILE_NAME: str, full_img_path: str
 ):
     """
     The following list contains all available "backends" provided by deepface.
@@ -161,20 +167,11 @@ def detect_multiple_faces(
     return faces
 
 
-# Define the image path and filename
-img_db_name = "face-db"
-img_directory = "chaewon-test"
-img_filename = "1.jpg"
-
-# this image is what the faces are compared to. this image must be good quality.
-reference_img_filename = "3.jpg"
-
 # Combine the directory with the base path
-full_img_path = os.path.join(img_db_name, img_directory, img_filename)
-
-faces = detect_multiple_faces(img_db_name, img_directory, img_filename, full_img_path)
+full_img_path = os.path.join(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME)
+faces = detect_multiple_faces(IMG_DB_NAME, IMG_DIR_NAME, IMG_FILE_NAME, full_img_path)
 detected_faces_info = save_detected_faces(
-    faces, img_directory, img_filename, full_img_path
+    faces, IMG_DIR_NAME, IMG_FILE_NAME, full_img_path
 )
 
 # Check if the function returned None (indicating an error)
@@ -186,16 +183,16 @@ else:
     )
 
     most_similar_cropped_img_path = find_most_similar_face(
-        reference_img_filename,
-        img_db_name,
-        img_directory,
+        REFERENCE_IMG_FILE_NAME,
+        IMG_DB_NAME,
+        IMG_DIR_NAME,
         current_cropped_faces_dir_in_cropped_img_db_path,
     )
 
     if most_similar_cropped_img_path:
         # set destination path (for copying photo)
         new_most_similar_cropped_img_path = os.path.join(
-            cropped_img_db_name, img_directory, "cropped_" + img_filename
+            cropped_img_db_name, IMG_DIR_NAME, "cropped_" + IMG_FILE_NAME
         )
 
         save_most_similar_face(
