@@ -3,13 +3,19 @@ import os
 import cv2
 
 
+def print_status(status):
+    print()
+    print(status)
+    print()
+
+
 # returns True or False depending on whether image was saved
 def save_image(img_destination_path: str, img):
     status = cv2.imwrite(img_destination_path, img)
     (
-        print(f"Saved photo to {img_destination_path}")
+        print_status(f"Saved photo to {img_destination_path}")
         if status
-        else print(f"Failed to save photo to {img_destination_path}")
+        else print_status(f"Failed to save photo to {img_destination_path}")
     )
     return status
 
@@ -20,11 +26,11 @@ def save_detected_faces(
     # Load the image from the predefined path
     img = cv2.imread(full_img_path)
 
-    # NOTE:
-    # if I use "not img", throws the following error...
+    # NOTE: if I use "not img", throws the following error...
     # "ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()"
     if img is None:  # TO-DO: Exit or handle error appropriately
-        return "Failed to load image from full_img_path."
+        print_status("Error: Failed to load image from full_img_path.")
+        return
 
     cropped_img_db_name = "cropped-face-db"
     current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
@@ -50,7 +56,7 @@ def save_detected_faces(
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
-            print("Error: Cropped image is empty.")
+            print_status("Error: Cropped image is empty.")
         else:
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
@@ -61,31 +67,28 @@ def save_detected_faces(
             # Save the cropped image
             success = save_image(cropped_img_full_path, cropped_img)
             if not success:
-                print("Failed to save cropped image.")
+                print_status("Error: Failed to save cropped image.")
             else:
                 count += 1
 
     return cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path
 
 
+# NOTE: The following considers cases where multiple faces were detected in the photo.
+# If there was only 1 face (most likely scenario), it will just choose that one.
 def find_most_similar_face(
     reference_img_filename,
     img_db_name,
     img_directory,
-    img_filename,
-    cropped_img_db_name,
     current_cropped_faces_dir_in_cropped_img_db_path,
 ):
-    # NOTE:
-    # Yes, the following takes care of the case where there were multiple faces in the photo.
-    # even if there was only one face (most likely scenario), it will just choose that one.
-
     reference_img_path = os.path.join(
         img_db_name, img_directory, reference_img_filename
     )
 
     # keep in mind DeepFace.find will generate a .pkl inside the directory.
-    # example CLI output: "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
+    # Example CLI output:
+    # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
     dfs = DeepFace.find(
         img_path=reference_img_path,
         db_path=current_cropped_faces_dir_in_cropped_img_db_path,
@@ -96,7 +99,7 @@ def find_most_similar_face(
     # I don't get why. The dataframes are already a list. Why would there be multiple dataframe outputs?
     dfs = dfs[0]
 
-    similar_face_to_reference_exists = True
+    # useful for most cases, where the individual will only appear once in the photo
     try:
         # dfs could be an empty dataframe here...
         # if deepface determined that NONE of the faces were similar to the reference.
@@ -106,36 +109,38 @@ def find_most_similar_face(
         # but, this could also be used as a feature...
         # if we can filter photos by distance and automatically group them...
         # into a batch of photos for the face recognized as "old photos of A" v.s. "recent photos of A"
-
-        # useful for most cases, where the individual will only appear once in the photo
         most_similar_df = dfs.loc[0]
-    except:
-        similar_face_to_reference_exists = False
-        print("\nError: could not find any faces similar to the reference face\n")
 
-    if similar_face_to_reference_exists:
-        status = "Found at least 1 face similar to face in reference image."
-        print(status)
+        print_status("Found at least 1 face similar to reference face.")
 
         # extract path data from dataframes
         most_similar_cropped_img_path = most_similar_df["identity"]
 
-        # set destination path (for copying photo)
-        new_most_similar_cropped_img_path = os.path.join(
-            cropped_img_db_name, img_directory, "cropped_" + img_filename
-        )
+        return most_similar_cropped_img_path
+    except:
+        print_status("Error: Could not find any faces similar to the reference face.")
 
-        # Load the most similar image from directory (copy)
-        most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
 
-        # Save the cropped image (paste)
-        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+def save_most_similar_face(
+    img_directory,
+    img_filename,
+    most_similar_cropped_img_path,
+    cropped_img_db_name,
+):
+    # set destination path (for copying photo)
+    new_most_similar_cropped_img_path = os.path.join(
+        cropped_img_db_name, img_directory, "cropped_" + img_filename
+    )
+
+    # Load the most similar cropped image from directory (copy) then save (paste)
+    most_similar_cropped_img = cv2.imread(most_similar_cropped_img_path)
+    save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
 
 
 def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: str):
     """
-    these are all available "backends" provided by deepface.
-    however, "retinaface" is the most capable one.
+    The following list contains all available "backends" provided by deepface.
+    "retinaface" is the most capable one for face detection.
     the creator of deepface also recommended "mtcnn", but "retinaface" is great so we will stick to it.
     """
     backends = [
@@ -165,16 +170,22 @@ def detect_multiple_faces(img_db_name: str, img_directory: str, img_filename: st
     # this image is what the faces are compared to. this image must be good quality.
     reference_img_filename = "3.jpg"
 
-    find_most_similar_face(
+    most_similar_cropped_img_path = find_most_similar_face(
         reference_img_filename,
         img_db_name,
         img_directory,
-        img_filename,
-        cropped_img_db_name,
         current_cropped_faces_dir_in_cropped_img_db_path,
     )
 
-    print("Code executed without crashing.")
+    if most_similar_cropped_img_path:
+        save_most_similar_face(
+            img_directory,
+            img_filename,
+            most_similar_cropped_img_path,
+            cropped_img_db_name,
+        )
+
+    print_status("Code executed without crashing.")
 
 
 # Define the image path and filename
