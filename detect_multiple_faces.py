@@ -39,6 +39,9 @@ def save_detected_faces(
 
     # load image here so I simply crop this image for every detected face
     img = load_image(full_img_path)
+    if img is None:
+        logging.error("Failed to load image, aborting face detection.")
+        return None  # Exit the function if image is not loaded
 
     # used to create unique filename for each face (1.png, 2.png, etc.)
     count = 1
@@ -165,29 +168,34 @@ img_filename = "angled.jpg"
 full_img_path = os.path.join(img_db_name, img_directory, img_filename)
 
 faces = detect_multiple_faces(img_db_name, img_directory, img_filename, full_img_path)
-
-cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
-    save_detected_faces(faces, img_directory, img_filename, full_img_path)
+detected_faces_info = save_detected_faces(
+    faces, img_directory, img_filename, full_img_path
 )
 
-# this image is what the faces are compared to. this image must be good quality.
-reference_img_filename = "3.jpg"
-
-most_similar_cropped_img_path = find_most_similar_face(
-    reference_img_filename,
-    img_db_name,
-    img_directory,
-    current_cropped_faces_dir_in_cropped_img_db_path,
-)
-
-if most_similar_cropped_img_path:
-    # set destination path (for copying photo)
-    new_most_similar_cropped_img_path = os.path.join(
-        cropped_img_db_name, img_directory, "cropped_" + img_filename
+# Check if the function returned None (indicating an error)
+if detected_faces_info is None:
+    logging.error("Failed to detect and save faces, aborting further processing.")
+else:
+    cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
+        detected_faces_info
     )
 
-    save_most_similar_face(
-        most_similar_cropped_img_path, new_most_similar_cropped_img_path
+    # this image is what the faces are compared to. this image must be good quality.
+    reference_img_filename = "3.jpg"
+
+    most_similar_cropped_img_path = find_most_similar_face(
+        reference_img_filename,
+        img_db_name,
+        img_directory,
+        current_cropped_faces_dir_in_cropped_img_db_path,
     )
 
-logging.info("Code executed without crashing.")
+    if most_similar_cropped_img_path:
+        # set destination path (for copying photo)
+        new_most_similar_cropped_img_path = os.path.join(
+            cropped_img_db_name, img_directory, "cropped_" + img_filename
+        )
+
+        save_most_similar_face(
+            most_similar_cropped_img_path, new_most_similar_cropped_img_path
+        )
