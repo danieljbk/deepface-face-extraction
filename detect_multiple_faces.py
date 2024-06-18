@@ -11,10 +11,12 @@ logging.basicConfig(
 
 # Constants
 BASE_IMG_DB_NAME = "face-db"
+CROPPED_IMG_DB_NAME = "cropped-face-db"
 BASE_IMG_DIR_NAME = "chaewon-test"
 BASE_IMG_FILE_NAME = "2.jpg"
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
 
+# Set file paths from constants
 BASE_IMG_FILE_PATH = os.path.join(
     BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME
 )
@@ -40,14 +42,13 @@ def save_image(path: str, img):
 
 
 def save_detected_faces(faces: list):
-    cropped_img_db_name = "cropped-face-db"
-    current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
-        cropped_img_db_name, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME + "/"
+    detected_faces_dir = os.path.join(
+        CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, BASE_IMG_FILE_NAME + "/"
     )  # the "/" is added to ensure this is recognized as a directory path and not a file
 
     # Ensure the output directory exists before saving
-    if not os.path.exists(current_cropped_faces_dir_in_cropped_img_db_path):
-        os.makedirs(current_cropped_faces_dir_in_cropped_img_db_path)
+    if not os.path.exists(detected_faces_dir):
+        os.makedirs(detected_faces_dir)
 
     # load image here so I simply crop this image for every detected face
     img = load_image(BASE_IMG_FILE_PATH)
@@ -75,24 +76,24 @@ def save_detected_faces(faces: list):
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
             cropped_img_full_path = os.path.join(
-                current_cropped_faces_dir_in_cropped_img_db_path, cropped_img_filename
+                detected_faces_dir, cropped_img_filename
             )
 
             save_image(cropped_img_full_path, cropped_img)
             count += 1
 
-    return cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path
+    return detected_faces_dir
 
 
 # Handles multiple face detections by selecting the most similar face (lowest distance value)
 def find_most_similar_face(
-    current_cropped_faces_dir_in_cropped_img_db_path,
+    directory,
 ):
     # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
     # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"
     dfs = DeepFace.find(
         img_path=REFERENCE_IMG_FILE_PATH,
-        db_path=current_cropped_faces_dir_in_cropped_img_db_path,
+        db_path=directory,
         detector_backend="retinaface",
     )  # these are dataframes, ordered by most similar to least similar
 
@@ -101,16 +102,12 @@ def find_most_similar_face(
 
     # Assumes individual's face appears no more than once in photo (no collages allowed)
     try:
-        # dfs could be an empty dataframe here...
-        # if deepface determined that NONE of the faces were similar to the reference.
-        # this is why the reference is quite important.
-        # and this can lead to complexity...
+        # dfs could be an empty dataframe here if deepface determined that NONE of the faces were similar to the reference.
+        # This is why the reference image is quite important. This can lead to complexity...
         # if there are photos of person A from a long time ago, that are compared with recent photos.
-        # but, this could also be used as a feature...
-        # if we can filter photos by distance and automatically group them...
+        # but, this could also be used as a feature if we can filter photos by distance and automatically group them...
         # into a batch of photos for the face recognized as "old photos of A" v.s. "recent photos of A"
         most_similar_df = dfs.loc[0]
-
         logging.info("Found at least 1 face similar to reference face.")
 
         # extract path data from dataframes
@@ -143,16 +140,14 @@ if detected_faces_info is None:
         "Failed to detect and save faces from BASE_IMG, aborting further processing."
     )
 else:
-    cropped_img_db_name, current_cropped_faces_dir_in_cropped_img_db_path = (
-        detected_faces_info
-    )
+    detected_faces_dir = detected_faces_info
     most_similar_cropped_img_path = find_most_similar_face(
-        current_cropped_faces_dir_in_cropped_img_db_path,
+        detected_faces_dir,
     )
     if most_similar_cropped_img_path:
         # set destination path (for copying photo)
         new_most_similar_cropped_img_path = os.path.join(
-            cropped_img_db_name, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
+            CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, "cropped_" + BASE_IMG_FILE_NAME
         )
         # Copy & paste the most similar cropped image
         most_similar_cropped_img = load_image(most_similar_cropped_img_path)
