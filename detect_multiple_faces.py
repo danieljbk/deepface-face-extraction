@@ -1,7 +1,7 @@
 import os
 import cv2
-from deepface import DeepFace
 import logging
+from deepface import DeepFace
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,15 +16,6 @@ IMG_FILE_NAME = "2.jpg"
 REFERENCE_IMG_FILE_NAME = "3.jpg"  # this image is what the faces are compared to & therefore must be high quality.
 
 
-# returns True or False depending on whether image was saved
-def save_image(img_destination_path: str, img):
-    success = cv2.imwrite(img_destination_path, img)
-    if success:
-        logging.info(f"Saved photo to {img_destination_path}")
-    else:
-        logging.error(f"Failed to save photo to {img_destination_path}")
-
-
 def load_image(full_img_path):
     img = cv2.imread(full_img_path)
     if img is None:
@@ -33,13 +24,28 @@ def load_image(full_img_path):
     return img
 
 
+def save_image(img_destination_path: str, img):
+    success = cv2.imwrite(img_destination_path, img)
+    if success:
+        logging.info(f"Saved photo to {img_destination_path}")
+    else:
+        logging.error(f"Failed to save photo to {img_destination_path}")
+
+
+def save_most_similar_face(most_similar_cropped_img_path, destination_path):
+    # Load most similar cropped image from directory (copy)
+    most_similar_cropped_img = load_image(most_similar_cropped_img_path)
+    # Then save (paste)
+    save_image(destination_path, most_similar_cropped_img)
+
+
 def save_detected_faces(
     faces: list, IMG_DIR_NAME: str, IMG_FILE_NAME: str, full_img_path: str
 ):
     cropped_img_db_name = "cropped-face-db"
     current_cropped_faces_dir_in_cropped_img_db_path = os.path.join(
         cropped_img_db_name, IMG_DIR_NAME, IMG_FILE_NAME + "/"
-    )  # the slash is added to ensure this is recognized as a directory path and not a file
+    )  # the "/" is added to ensure this is recognized as a directory path and not a file
 
     # Ensure the output directory exists before saving
     if not os.path.exists(current_cropped_faces_dir_in_cropped_img_db_path):
@@ -131,12 +137,6 @@ def find_most_similar_face(
     except Exception as e:
         logging.error(f"Unexpected error when finding most similar face: {e}")
         return None
-
-
-def save_most_similar_face(most_similar_cropped_img_path, destination_path):
-    # Load the most similar cropped image from directory (copy) then save (paste)
-    most_similar_cropped_img = load_image(most_similar_cropped_img_path)
-    save_image(destination_path, most_similar_cropped_img)
 
 
 def detect_multiple_faces(
