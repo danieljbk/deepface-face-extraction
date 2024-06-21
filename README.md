@@ -1,54 +1,38 @@
 # face-recognition
 
-Takes in images of humans, outputs only the faces.
-To be used to clean up the image dataset before feeding to DreamBooth.
+Input:
 
-## Installation Requirements (For Jupyter Notebook)
+1. Path to directory of images
+2. Reference image of John's face
 
-Before running this notebook, ensure the following packages are installed by running these commands in your command line interface (CLI):
+Output:
+    Cropped images of John's face from each image in the directory.
 
-```bash
-pip install --upgrade pip setuptools wheel
-pip install --upgrade pip
+## Purpose
 
-pip install deepface
-pip install tf-keras
-pip install matplotlib
-```
+Extract only the face data from a dataset of images of humans / a specific human.
 
-## TO-DO:
+## NOTE: Does not crop all photos by default (for efficiency)
 
-### #2
+After modification, code now compares each image in the directory to the reference image to see if it is a match. Then it crops the images that are a match. It used to crop all images in the directory, but this was inefficient.
 
-I need to incorporate the confidence/distance attribute.
+The only issue this might create is that the program fully depends on the reference image for comparison, so if the reference image is not a good match to the target face, the program will miss some faces.
 
-I want to input a bunch of images, in which I want the code to classify the images that will be useful versus trash ones.
+However, there is a way to go around this. Simply set the similarity threshold variable to 1, and the program will crop all faces it finds in the directory.
 
-To achieve this, the code will have to check each input image to see if the desired face is in there.
+## TO-DO
 
-I should decide whether to use the `DeepFace.find` function to check against all photos BEFORE cropping them, or to just do it on-the-go while I crop them, as sometimes DeepFace seems to fail to crop when a face is not detected. This second method might be more efficient, as the first method could lead to doing double the work - identify first when checking, the identify again while cropping. Though, if I can utilize the `.pkl` file, which seems to contain info about the images, I could save compute. I might want to look into the "embed" function, which might solve this efficiency issue.
+### Utilize .pkl files
 
-It could help to use the distance attribute to filter out low quality images if distance does increase with lower quality.
+I should utilize the `.pkl` file, generated after each DeepFace.find(). Note that it links the reference image to the provided images - it is not just vector storage of the provided images.
 
-### #3
+Potentially related - I might want to look into the "embed" function of DeepFace, which might solve this efficiency issue.
+
+### Filter Images by Face Dimension
 
 Speaking of low quality, the dimensions of the cropped images communicate their quality. I might want to consider trashing any output photos that are smaller than a set number of pixels. This is important because DreamBooth wants as high quality photos as possible. Keep in mind that size does not necessarily correlate to quality. Meaning, the picture could be blurry but the size could be big. This is equally bad as the picture being clear but the size being tiny.
 
-### #4
-
-Copied from detect_multiple_faces.py.
-Alternative method of selecting similar faces from recognized faces in photo.
-
-```python
-# TO-DO: Edge Case (skipped for now bc unnecessary)
-# if the photo was a collage of multiple photos of the specific individual
-# select all faces that had a similarity distance of less than 0.5
-
-similar_dfs = dfs[dfs["distance"] < 0.5]
-file_paths = similar_dfs["identity"].tolist()
-```
-
-### #5
+### Detailed Data Logging for Reuse
 
 Need to create info files inside each image directory specifying data that can be accessed in the future to avoid reprocessing.
 
@@ -63,11 +47,3 @@ This includes data like:
 I also need a file describing which images had an identifiable face in them, and which did not. Which had how many faces, etc.
 
 Anything that was processed in an initial run must be saved in an easily accessible so that we do not have to waste computational resources.
-
-### #6
-
-Checking against the reference image for each folder (for each image) is so inefficient.
-
-I propose a new method where I generate all faces in all photos first, then check against all of these images at once.
-
-I hypothesize the efficiency improvement will come from only having to load the reference image & the "find" model once.
