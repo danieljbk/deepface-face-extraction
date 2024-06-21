@@ -3,6 +3,15 @@
 Takes in images of humans, outputs only the faces.
 To be used to clean up the image dataset before feeding to DreamBooth.
 
+
+## NOTE: Modification for Efficiency
+
+After modification, code now compares each image in the directory to the reference image to see if it is a match. Then it crops the images that are a match. It used to crop all images in the directory, but this was inefficient.
+
+The only issue this might create is that the program fully depends on the reference image for comparison, so if the reference image is not a good match to the target face, the program will miss some faces.
+
+However, there is a way to go around this. Simply set the similarity threshold to 1, and the program will crop all faces it finds in the directory.
+
 ## Installation Requirements (For Jupyter Notebook)
 
 Before running this notebook, ensure the following packages are installed by running these commands in your command line interface (CLI):
@@ -63,9 +72,3 @@ This includes data like:
 I also need a file describing which images had an identifiable face in them, and which did not. Which had how many faces, etc.
 
 Anything that was processed in an initial run must be saved in an easily accessible so that we do not have to waste computational resources.
-
-### #6
-
-Currently, when I run the "find" function, it checks all images in the given directory for faces. The problem here is that it is rechecking these cropped face images for faces.
-I already cropped all of the faces in the directory, so it really shouldn't need to check all of the images for faces in the directory again.
-I need it to only check the reference image for a face, or I need it to output the face coordinates for each image in the directory, which I can use to crop the images.

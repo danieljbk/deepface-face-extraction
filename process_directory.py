@@ -11,8 +11,6 @@ from config import (
 )
 from process_image import (
     detect_faces,
-    crop_and_save_detected_faces,
-    find_most_similar_face,  # Assuming this function exists
 )
 
 from utils import load_and_process_image, save_processed_image, ensure_directory_exists
@@ -37,12 +35,10 @@ def filter_faces_by_similarity(dfs, similarity_threshold):
 
 
 def select_unique_faces(similar_faces):
-    """Select the most similar face per directory."""
-    similar_faces["directory"] = similar_faces["identity"].apply(
-        lambda x: os.path.dirname(x)
-    )
+    """Select the most similar face per image file."""
+    # Group by the image file path directly to distinguish faces from each image
     return (
-        similar_faces.sort_values("distance").groupby("directory").first().reset_index()
+        similar_faces.sort_values("distance").groupby("identity").first().reset_index()
     )
 
 
@@ -71,10 +67,56 @@ def find_similar_faces(
 
         visualize_dataframes(similar_faces)
 
-        return similar_faces["identity"].tolist()
+        return similar_faces
     except Exception as e:
         logging.error(f"Failed to find similar faces: {e}")
         return []
+
+
+def crop_and_save_detected_faces(faces: list, img_path: str):
+    detected_faces_dir = os.path.join(
+        CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, os.path.basename(img_path) + "/"
+    )
+    ensure_directory_exists(detected_faces_dir)
+
+    # Load the image once to crop all detected faces
+    img = load_and_process_image(img_path)
+    if img is None:
+        logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
+        return None
+
+    image_height, image_width = img.shape[:2]
+
+    # Used to create unique filename for each face (1.png, 2.png, etc.)
+    count = 1
+    for x, y, w, h in faces:
+        # Correcting for out-of-bound coordinates
+        x = max(0, x)
+        y = max(0, y)
+        w = min(w, image_width - x)
+        h = min(h, image_height - y)
+
+        # Crop the image using the facial area coordinates
+        cropped_img = img[y : y + h, x : x + w]
+        if cropped_img.size == 0:
+            logging.error("Error: Cropped image is empty.")
+            continue
+
+        # Set up the directory and filename for the cropped image
+        cropped_img_filename = f"{count}.png"
+        cropped_img_full_path = os.path.join(detected_faces_dir, cropped_img_filename)
+        success = save_processed_image(cropped_img_full_path, cropped_img)
+        if success:
+            count += 1
+
+    # Check if at least one face image was saved
+    if count > 1:
+        return detected_faces_dir
+    else:
+        logging.error(
+            f"Unexpected Error: No faces saved to ({detected_faces_dir}), aborting..."
+        )
+        return None
 
 
 def process_directory(
@@ -83,63 +125,34 @@ def process_directory(
     similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD,
     unique_per_image=DEFAULT_UNIQUE_PER_IMAGE,
 ):
-    all_detected_faces_dir = os.path.join(directory, "all_detected_faces")
-    ensure_directory_exists(all_detected_faces_dir)
-
-    # Face detection and cropping logic here...
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.lower().endswith((".png", ".jpg", ".jpeg")):
-                img_path = os.path.join(root, file)
-                logging.info(f"Processing image: {img_path}")
-
-                # Detect faces in the image
-                faces = detect_faces(img_path)
-                if not faces:
-                    logging.warning(f"No faces detected in {img_path}. Skipping.")
-                    continue
-
-                # Crop and save detected faces
-                crop_and_save_detected_faces(faces, img_path)
-
-    # currently, crop_and_save_detected_faces() saves to cropped-face-db/person/img_path
-    # in contrast to this function, in which we make a new dir for output in the original dir
-    # so we must run DeepFace.find on that directory
-    detected_faces_dir = os.path.join(CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME)
+    ensure_directory_exists(directory)
 
     # Find similar faces with the specified options
     similar_faces = find_similar_faces(
-        detected_faces_dir,
+        directory,
         reference_img_path,
         similarity_threshold,
         unique_per_image,
     )
 
-    # so far so good
-    if similar_faces:
-        logging.info(f"Found similar faces: {similar_faces}")
+    # similar_faces is a dataframe with columns "identity", "distance", "threshold"
+    # and face coordinates ("target_x", "target_y", "target_w", "target_h")
+    if not similar_faces.empty:
+        logging.info(f"Found similar faces: {similar_faces['identity'].tolist()}")
 
-        # need new names
-        for img_path in similar_faces:
-            # Extract the folder name (which contains the original image name) from the img_path
-            original_img_name = os.path.basename(os.path.dirname(img_path))
+        for _, row in similar_faces.iterrows():
+            img_path = row["identity"]
+            # Coordinates for cropping the detected face
+            x, y, w, h = (
+                row["target_x"],
+                row["target_y"],
+                row["target_w"],
+                row["target_h"],
+            )
+            # Crop and save detected faces using the coordinates provided by DeepFace.find
+            crop_and_save_detected_faces([(x, y, w, h)], img_path)
 
-            # Set the destination path for copying the photo using all_detected_faces_dir
-            new_most_similar_cropped_img_path = os.path.join(
-                all_detected_faces_dir,
-                f"{original_img_name}-{os.path.basename(img_path)}",  # Use folder name in the new file name
-            )
-
-            # Copy & save the most similar cropped image
-            most_similar_cropped_img = load_and_process_image(
-                img_path
-            )  # Corrected variable name
-            save_processed_image(
-                new_most_similar_cropped_img_path, most_similar_cropped_img
-            )
-            logging.info(
-                f"Copied and saved the most similar face to: ({new_most_similar_cropped_img_path})"
-            )
+            logging.info(f"Cropped and saved face from: {img_path}")
     else:
         logging.info(f"No similar faces found in directory: {directory}.")
 
