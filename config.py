@@ -39,6 +39,7 @@ COMPLETED_PROCESSING_LOG = "Completed processing for {img_path}."
 FAILED_TO_FIND_FACES_LOG = "Failed to find similar faces: {img_path} due to: {error}"
 CROPPED_SAVED_FACE_LOG = "Cropped and saved face from: {img_path}"
 FOUND_SIMILAR_FACES_LOG = "Similar faces found in {directory}."
+NO_SIMILAR_FACES_FOUND_LOG = "No similar faces found in {directory}."
 
 
 def configure_logging():

@@ -1,7 +1,9 @@
 import os
 import logging
 import pandas as pd
+from termcolor import colored
 from deepface import DeepFace
+from utils import load_and_process_image, save_processed_image, ensure_directory_exists
 from config import (
     BASE_IMG_DB_NAME,
     BASE_IMG_DIR_NAME,
@@ -16,12 +18,6 @@ from config import (
     CROPPED_SAVED_FACE_LOG,
     NO_SIMILAR_FACES_FOUND_LOG,
 )
-from process_image import (
-    detect_faces,
-)
-
-from utils import load_and_process_image, save_processed_image, ensure_directory_exists
-from termcolor import colored
 
 # Define default values as constants at the module level
 DEFAULT_SIMILARITY_THRESHOLD = 0.6
