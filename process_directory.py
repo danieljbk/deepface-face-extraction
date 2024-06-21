@@ -112,43 +112,44 @@ def find_similar_faces(
         return []
 
 
+def crop_face(img, x, y, w, h):
+    """Crop the face from the image based on provided coordinates."""
+    image_height, image_width = img.shape[:2]
+    x = max(0, x)
+    y = max(0, y)
+    w = min(w, image_width - x)
+    h = min(h, image_height - y)
+    return img[y : y + h, x : x + w]
+
+
+def save_face_image(directory, img, count):
+    """Save the cropped face image to the specified directory."""
+    cropped_img_filename = f"{count}.png"
+    cropped_img_full_path = os.path.join(directory, cropped_img_filename)
+    return save_processed_image(cropped_img_full_path, img)
+
+
 def crop_and_save_detected_faces(faces: list, img_path: str):
     detected_faces_dir = os.path.join(
         CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, os.path.basename(img_path) + "/"
     )
     ensure_directory_exists(detected_faces_dir)
 
-    # Load the image once to crop all detected faces
     img = load_and_process_image(img_path)
     if img is None:
         logging.error(FAILED_TO_LOAD_IMAGE_LOG.format(img_path=img_path))
         return None
 
-    image_height, image_width = img.shape[:2]
-
-    # Used to create unique filename for each face (1.png, 2.png, etc.)
     count = 1
     for x, y, w, h in faces:
-        # Correcting for out-of-bound coordinates
-        x = max(0, x)
-        y = max(0, y)
-        w = min(w, image_width - x)
-        h = min(h, image_height - y)
-
-        # Crop the image using the facial area coordinates
-        cropped_img = img[y : y + h, x : x + w]
+        cropped_img = crop_face(img, x, y, w, h)
         if cropped_img.size == 0:
             logging.error(CROPPED_IMAGE_EMPTY_LOG)
             continue
 
-        # Set up the directory and filename for the cropped image
-        cropped_img_filename = f"{count}.png"
-        cropped_img_full_path = os.path.join(detected_faces_dir, cropped_img_filename)
-        success = save_processed_image(cropped_img_full_path, cropped_img)
-        if success:
+        if save_face_image(detected_faces_dir, cropped_img, count):
             count += 1
 
-    # Check if at least one face image was saved
     if count > 1:
         return detected_faces_dir
     else:
