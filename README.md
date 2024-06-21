@@ -2,11 +2,14 @@
 
 Input:
 
-1. Path to directory of images
-2. Reference image of John's face
+1. Path to directory of images (not limited to images of individual)
+2. Reference image of individual's face
 
 Output:
-    Cropped images of John's face from each image in the directory.
+
+Cropped images of individual's face from every image in the directory.
+
+Note: Assumes individual's face appears, at maximum, once in each image.
 
 ## Purpose
 

@@ -92,13 +92,12 @@ def find_similar_faces(
             detector_backend="retinaface",
         )
         if not isinstance(dfs, pd.DataFrame):
-            dfs = pd.concat(dfs)  # Only concatenate if dfs is not already a DataFrame
+            dfs = pd.concat(dfs) if dfs else pd.DataFrame()  # Ensure dfs is a DataFrame
 
         visualize_dataframes(dfs)
 
         similar_faces = filter_faces_by_similarity(dfs, similarity_threshold)
         visualize_dataframes(similar_faces)
-
         if unique_per_image:
             similar_faces = select_unique_faces(similar_faces)
 
@@ -109,7 +108,7 @@ def find_similar_faces(
         logging.error(
             FAILED_TO_FIND_FACES_LOG.format(img_path=reference_img_path, error=str(e))
         )
-        return []
+        return pd.DataFrame()  # Return an empty DataFrame on error
 
 
 def crop_face(img, x, y, w, h):
@@ -122,18 +121,15 @@ def crop_face(img, x, y, w, h):
     return img[y : y + h, x : x + w]
 
 
-def save_face_image(directory, img, count):
-    """Save the cropped face image to the specified directory."""
-    cropped_img_filename = f"{count}.png"
-    cropped_img_full_path = os.path.join(directory, cropped_img_filename)
+def save_face_image(directory, img, img_name):
+    """Save the cropped face image to the specified directory, with the specified image name."""
+    cropped_img_full_path = os.path.join(directory, img_name)
     return save_processed_image(cropped_img_full_path, img)
 
 
 def crop_and_save_detected_faces(faces: list, img_path: str):
-    detected_faces_dir = os.path.join(
-        CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME, os.path.basename(img_path) + "/"
-    )
-    ensure_directory_exists(detected_faces_dir)
+    detected_faces_output_dir = os.path.join(CROPPED_IMG_DB_NAME, BASE_IMG_DIR_NAME)
+    ensure_directory_exists(detected_faces_output_dir)
 
     img = load_and_process_image(img_path)
     if img is None:
@@ -147,13 +143,16 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
             logging.error(CROPPED_IMAGE_EMPTY_LOG)
             continue
 
-        if save_face_image(detected_faces_dir, cropped_img, count):
+        cropped_img_filename = f"{count}_{os.path.basename(img_path)}"
+        if save_face_image(
+            detected_faces_output_dir, cropped_img, cropped_img_filename
+        ):
             count += 1
 
     if count > 1:
-        return detected_faces_dir
+        return detected_faces_output_dir
     else:
-        logging.error(NO_FACES_SAVED_LOG.format(detected_faces_dir=detected_faces_dir))
+        logging.error(NO_FACES_SAVED_LOG.format(directory=detected_faces_output_dir))
         return None
 
 
