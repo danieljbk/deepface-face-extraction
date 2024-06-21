@@ -59,3 +59,15 @@ This includes data like:
 - the X, Y, W, H coords of each cropped photo (relative to reference photo)
 - all logs pertaining to the processing of this image
 - etc.
+
+I also need a file describing which images had an identifiable face in them, and which did not. Which had how many faces, etc.
+
+Anything that was processed in an initial run must be saved in an easily accessible so that we do not have to waste computational resources.
+
+### #6
+
+Checking against the reference image for each folder (for each image) is so inefficient.
+
+I propose a new method where I generate all faces in all photos first, then check against all of these images at once.
+
+I hypothesize the efficiency improvement will come from only having to load the reference image & the "find" model once.
