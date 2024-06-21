@@ -1,19 +1,21 @@
-# face-recognition
+# DeepFace Face Extraction
 
-Input:
+## Usage
+
+**Input:**
 
 1. Path to directory of images (not limited to images of individual)
 2. Reference image of individual's face
 
-Output:
+**Output:**
 
 Cropped images of individual's face from every image in the directory.
 
-Note: Assumes individual's face appears, at maximum, once in each image.
+###### Note: Assumes individual's face appears, at maximum, once in each image.
 
 ## Purpose
 
-Extract only the face data from a dataset of images of humans / a specific human.
+Extract only the faces from a image dataset of humans / a specific human.
 
 ## NOTE: Does not crop all photos by default (for efficiency)
 
