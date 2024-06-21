@@ -8,6 +8,13 @@ from config import (
     CROPPED_IMG_DB_NAME,
     REFERENCE_IMG_FILE_PATH,
     configure_logging,
+    FAILED_TO_FIND_FACES_LOG,
+    FAILED_TO_LOAD_IMAGE_LOG,
+    CROPPED_IMAGE_EMPTY_LOG,
+    NO_FACES_SAVED_LOG,
+    FOUND_SIMILAR_FACES_LOG,
+    CROPPED_SAVED_FACE_LOG,
+    NO_SIMILAR_FACES_FOUND_LOG,
 )
 from process_image import (
     detect_faces,
@@ -100,7 +107,7 @@ def find_similar_faces(
 
         return similar_faces
     except Exception as e:
-        logging.error(f"Failed to find similar faces: {e}")
+        logging.error(FAILED_TO_FIND_FACES_LOG.format(img_path=reference_img_path))
         return []
 
 
@@ -113,7 +120,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     # Load the image once to crop all detected faces
     img = load_and_process_image(img_path)
     if img is None:
-        logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
+        logging.error(FAILED_TO_LOAD_IMAGE_LOG.format(img_path=img_path))
         return None
 
     image_height, image_width = img.shape[:2]
@@ -130,7 +137,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
-            logging.error("Error: Cropped image is empty.")
+            logging.error(CROPPED_IMAGE_EMPTY_LOG)
             continue
 
         # Set up the directory and filename for the cropped image
@@ -144,9 +151,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     if count > 1:
         return detected_faces_dir
     else:
-        logging.error(
-            f"Unexpected Error: No faces saved to ({detected_faces_dir}), aborting..."
-        )
+        logging.error(NO_FACES_SAVED_LOG.format(detected_faces_dir=detected_faces_dir))
         return None
 
 
@@ -169,7 +174,7 @@ def process_directory(
     # similar_faces is a dataframe with columns "identity", "distance", "threshold"
     # and face coordinates ("target_x", "target_y", "target_w", "target_h")
     if not similar_faces.empty:
-        logging.info(f"Found similar faces: {similar_faces['identity'].tolist()}")
+        logging.info(FOUND_SIMILAR_FACES_LOG.format(directory=directory))
 
         for _, row in similar_faces.iterrows():
             img_path = row["identity"]
@@ -183,9 +188,9 @@ def process_directory(
             # Crop and save detected faces using the coordinates provided by DeepFace.find
             crop_and_save_detected_faces([(x, y, w, h)], img_path)
 
-            logging.info(f"Cropped and saved face from: {img_path}")
+            logging.info(CROPPED_SAVED_FACE_LOG.format(img_path=img_path))
     else:
-        logging.info(f"No similar faces found in directory: {directory}.")
+        logging.info(NO_SIMILAR_FACES_FOUND_LOG.format(directory=directory))
 
 
 if __name__ == "__main__":

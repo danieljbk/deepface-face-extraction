@@ -9,6 +9,19 @@ from config import (
     CROPPED_IMG_DB_NAME,
     REFERENCE_IMG_FILE_PATH,
     configure_logging,
+    FAILED_TO_LOAD_IMAGE_LOG,
+    CROPPED_IMAGE_EMPTY_LOG,
+    NO_FACES_SAVED_LOG,
+    FOUND_SIMILAR_FACE_LOG,
+    NO_SIMILAR_FACES_FOUND_LOG,
+    UNEXPECTED_ERROR_LOG,
+    FACE_DETECTION_FAILED_LOG,
+    NO_FACES_DETECTED_LOG,
+    NO_FACES_SAVED_FROM_IMAGE_LOG,
+    MOST_SIMILAR_FACE_FOUND_LOG,
+    COPIED_SAVED_FACE_LOG,
+    NO_SIMILAR_FACES_IMAGE_LOG,
+    COMPLETED_PROCESSING_LOG,
 )
 import pandas as pd
 
@@ -24,11 +37,10 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     # load image here so I simply crop this loaded image for every detected face
     img = load_and_process_image(img_path)
     if img is None:
-        logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
+        logging.error(FAILED_TO_LOAD_IMAGE_LOG.format(img_path=img_path))
         return None  # Exit the function if image is not loaded
 
-    image_height = img.shape[0]
-    image_width = img.shape[1]
+    image_height, image_width = img.shape[:2]
 
     # used to create unique filename for each face (1.png, 2.png, etc.)
     count = 1
@@ -53,7 +65,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
         # Crop the image using the facial area coordinates
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
-            logging.error("Error: Cropped image is empty.")
+            logging.error(CROPPED_IMAGE_EMPTY_LOG)
         else:
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
@@ -68,9 +80,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     if count > 1:
         return detected_faces_dir
     else:
-        logging.error(
-            f"Unexpected Error: No faces saved to ({detected_faces_dir}), aborting..."
-        )
+        logging.error(NO_FACES_SAVED_LOG.format(detected_faces_dir=detected_faces_dir))
         return None
 
 
@@ -91,7 +101,10 @@ def find_most_similar_face(
         # TODO: Investigate why DeepFace.find returns this single dataframe in a list.
         dfs = dfs[0]
     except ValueError as e:
-        logging.error("Failed to find any similar faces, aborting...")
+        logging.error(
+            FACE_DETECTION_FAILED_LOG.format(img_path=REFERENCE_IMG_FILE_PATH)
+        )
+        return None
 
     # The following assumes the individual's face appears no more than once in photo (no collages allowed)
     try:
@@ -101,21 +114,15 @@ def find_most_similar_face(
         # but, this could also be used as a feature if we can filter photos by distance and automatically group them...
         # into a batch of photos for the face recognized as "old photos of A" v.s. "recent photos of A"
         most_similar_df = dfs.loc[0]
-        logging.info(
-            f"Found at least 1 face similar to reference image ({REFERENCE_IMG_FILE_PATH}) in ({directory})."
-        )
+        logging.info(FOUND_SIMILAR_FACE_LOG.format(directory=directory))
 
         # extract path data from dataframes
-        most_similar_face_img_path = most_similar_df["identity"]
-
-        return most_similar_face_img_path
-    except IndexError as e:
-        logging.error(
-            "No similar faces found, or an error occurred in the DataFrame indexing."
-        )
+        return most_similar_df["identity"]
+    except IndexError:
+        logging.error(NO_SIMILAR_FACES_FOUND_LOG.format(directory=directory))
         return None
     except Exception as e:
-        logging.error(f"Unexpected error when finding most similar face: {e}")
+        logging.error(UNEXPECTED_ERROR_LOG.format(e=e))
         return None
 
 
@@ -127,7 +134,7 @@ def detect_faces(img_path):
             detector_backend="retinaface",
         )
     except ValueError as e:
-        logging.error(f"Face could not be detected in ({img_path}).")
+        logging.error(FACE_DETECTION_FAILED_LOG.format(img_path=img_path))
         return None
 
     return faces
@@ -137,17 +144,21 @@ def process_single_image(img_path):
     logging.info(f"Starting processing of image: {img_path}")
     faces = detect_faces(img_path)
     if not faces:
-        logging.error(f"No faces detected in {img_path}. Skipping.")
+        logging.error(NO_FACES_DETECTED_LOG.format(img_path=img_path))
         return
 
     detected_faces_dir = crop_and_save_detected_faces(faces, img_path)
     if not detected_faces_dir:
-        logging.error(f"No faces saved from {img_path}. Skipping.")
+        logging.error(NO_FACES_SAVED_FROM_IMAGE_LOG.format(img_path=img_path))
         return
 
     most_similar_face_img_path = find_most_similar_face(detected_faces_dir)
     if most_similar_face_img_path:
-        logging.info(f"Most similar face found at: {most_similar_face_img_path}")
+        logging.info(
+            MOST_SIMILAR_FACE_FOUND_LOG.format(
+                most_similar_face_img_path=most_similar_face_img_path
+            )
+        )
 
         # Set the destination path for copying the photo
         new_most_similar_cropped_img_path = os.path.join(
@@ -162,12 +173,14 @@ def process_single_image(img_path):
             new_most_similar_cropped_img_path, most_similar_cropped_img
         )
         logging.info(
-            f"Copied and saved the most similar face to: ({new_most_similar_cropped_img_path})"
+            COPIED_SAVED_FACE_LOG.format(
+                new_most_similar_cropped_img_path=new_most_similar_cropped_img_path
+            )
         )
     else:
-        logging.info(f"No similar faces found for image: {img_path}")
+        logging.info(NO_SIMILAR_FACES_IMAGE_LOG.format(img_path=img_path))
 
-    logging.info(f"Completed processing of image: {img_path}")
+    logging.info(COMPLETED_PROCESSING_LOG.format(img_path=img_path))
 
 
 # For standalone testing of this file.
