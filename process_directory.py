@@ -14,19 +14,50 @@ from process_image import (
 )
 
 from utils import load_and_process_image, save_processed_image, ensure_directory_exists
+from termcolor import colored
 
 # Define default values as constants at the module level
 DEFAULT_SIMILARITY_THRESHOLD = 0.6
 DEFAULT_UNIQUE_PER_IMAGE = True
 
 
-# currently just prints the dataframe to the terminal
-def visualize_dataframes(df):
+def visualize_dataframes(df, header="DataFrame Visualization"):
+    """Prints the DataFrame column names in groups, followed by values for each row in a visually distinct format with color coding."""
     pd.set_option("display.max_columns", None)
     pd.set_option("display.max_rows", None)
     pd.set_option("display.width", 1000)
     pd.set_option("display.max_colwidth", None)
-    print(df)
+
+    print(colored(f"\n--- {header} ---", "cyan", attrs=["bold"]))
+
+    # Define column groups
+    groups = {
+        "Identity": ["identity"],
+        "Hash": ["hash"],
+        "Target Coordinates": ["target_x", "target_y", "target_w", "target_h"],
+        "Source Coordinates": ["source_x", "source_y", "source_w", "source_h"],
+        "Metrics": ["threshold", "distance"],
+    }
+
+    # Print column headers grouped
+    for group_name, columns in groups.items():
+        grouped_columns = ", ".join(
+            [colored(col, "yellow") for col in columns if col in df.columns]
+        )
+        if grouped_columns:
+            print(f"{group_name}: {grouped_columns}")
+
+    # Print each row's values grouped
+    for index, row in df.iterrows():
+        print(colored(f"Row {index}:", "cyan", attrs=["bold"]))
+        for group_name, columns in groups.items():
+            values = ", ".join(
+                [colored(str(row[col]), "green") for col in columns if col in row]
+            )
+            if values:
+                print(f"  {group_name}: {values}")
+
+    print(colored("--- End of Visualization ---", "cyan", attrs=["bold"]))
 
 
 def filter_faces_by_similarity(dfs, similarity_threshold):
