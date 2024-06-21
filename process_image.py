@@ -10,6 +10,7 @@ from config import (
     REFERENCE_IMG_FILE_PATH,
     configure_logging,
 )
+import pandas as pd
 
 
 def crop_and_save_detected_faces(faces: list, img_path: str):
@@ -73,10 +74,11 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
         return None
 
 
-# Handles multiple face detections by selecting the most similar face (lowest distance value)
+# For process_directory.py, a different function, find_similar_faces(), is used.
 def find_most_similar_face(
     directory,
 ):
+    """Handles multiple face detections by selecting the most similar face (lowest distance value)"""
     try:
         # NOTE: DeepFace.find generates a .pkl file in the directory, allowing potential usage in subsequent runs. See CLI output example:
         # "There are now 1 representations in ds_model_vggface_detector_retinaface_aligned_normalization_base_expand_0.pkl"

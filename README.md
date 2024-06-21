@@ -66,8 +66,6 @@ Anything that was processed in an initial run must be saved in an easily accessi
 
 ### #6
 
-Checking against the reference image for each folder (for each image) is so inefficient.
-
-I propose a new method where I generate all faces in all photos first, then check against all of these images at once.
-
-I hypothesize the efficiency improvement will come from only having to load the reference image & the "find" model once.
+Currently, when I run the "find" function, it checks all images in the given directory for faces. The problem here is that it is rechecking these cropped face images for faces.
+I already cropped all of the faces in the directory, so it really shouldn't need to check all of the images for faces in the directory again.
+I need it to only check the reference image for a face, or I need it to output the face coordinates for each image in the directory, which I can use to crop the images.
