@@ -1,9 +1,18 @@
 # face-recognition
 
-Takes in images of humans, outputs cropped images of their faces.
-To be used to clean up the image dataset before feeding to DreamBooth.
+Input:
 
-## NOTE: Modification for Efficiency
+1. Path to directory of images
+2. Reference image of John's face
+
+Output:
+    Cropped images of John's face from each image in the directory.
+
+## Purpose
+
+Extract only the face data from a dataset of images of humans / a specific human.
+
+## NOTE: Does not crop all photos by default (for efficiency)
 
 After modification, code now compares each image in the directory to the reference image to see if it is a match. Then it crops the images that are a match. It used to crop all images in the directory, but this was inefficient.
 
