@@ -66,6 +66,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
         cropped_img = img[y : y + h, x : x + w]
         if cropped_img.size == 0:
             logging.error(CROPPED_IMAGE_EMPTY_LOG)
+            continue  # Skip further processing for this face
         else:
             # Set up the directory and filename for the cropped image
             cropped_img_filename = f"{count}.png"
@@ -75,6 +76,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
             success = save_processed_image(cropped_img_full_path, cropped_img)
             if success:
                 count += 1
+            continue
 
     # there was at least one face image saved
     if count > 1:

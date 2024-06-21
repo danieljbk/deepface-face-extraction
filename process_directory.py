@@ -76,7 +76,10 @@ def select_unique_faces(similar_faces):
     """Select the most similar face per image file."""
     # Group by the image file path directly to distinguish faces from each image
     return (
-        similar_faces.sort_values("distance").groupby("identity").first().reset_index()
+        similar_faces.sort_values("distance")
+        .groupby("identity")
+        .first()
+        .reset_index()  # The reset_index() method is crucial when you need to ensure that the DataFrame has a standard integer index, especially after operations like groupby().first() which can leave the DataFrame with a non-standard index.
     )
 
 
@@ -92,8 +95,8 @@ def find_similar_faces(
             db_path=directory,
             detector_backend="retinaface",
         )
-        if isinstance(dfs, list):
-            dfs = pd.concat(dfs)  # Assuming dfs is a list of DataFrames
+        if not isinstance(dfs, pd.DataFrame):
+            dfs = pd.concat(dfs)  # Only concatenate if dfs is not already a DataFrame
 
         visualize_dataframes(dfs)
 
@@ -107,7 +110,9 @@ def find_similar_faces(
 
         return similar_faces
     except Exception as e:
-        logging.error(FAILED_TO_FIND_FACES_LOG.format(img_path=reference_img_path))
+        logging.error(
+            FAILED_TO_FIND_FACES_LOG.format(img_path=reference_img_path, error=str(e))
+        )
         return []
 
 
@@ -173,24 +178,25 @@ def process_directory(
 
     # similar_faces is a dataframe with columns "identity", "distance", "threshold"
     # and face coordinates ("target_x", "target_y", "target_w", "target_h")
-    if not similar_faces.empty:
-        logging.info(FOUND_SIMILAR_FACES_LOG.format(directory=directory))
-
-        for _, row in similar_faces.iterrows():
-            img_path = row["identity"]
-            # Coordinates for cropping the detected face
-            x, y, w, h = (
-                row["target_x"],
-                row["target_y"],
-                row["target_w"],
-                row["target_h"],
-            )
-            # Crop and save detected faces using the coordinates provided by DeepFace.find
-            crop_and_save_detected_faces([(x, y, w, h)], img_path)
-
-            logging.info(CROPPED_SAVED_FACE_LOG.format(img_path=img_path))
-    else:
+    if similar_faces.empty:
         logging.info(NO_SIMILAR_FACES_FOUND_LOG.format(directory=directory))
+        return
+
+    logging.info(FOUND_SIMILAR_FACES_LOG.format(directory=directory))
+
+    for _, row in similar_faces.iterrows():
+        img_path = row["identity"]
+        # Coordinates for cropping the detected face
+        x, y, w, h = (
+            row["target_x"],
+            row["target_y"],
+            row["target_w"],
+            row["target_h"],
+        )
+        # Crop and save detected faces using the coordinates provided by DeepFace.find
+        crop_and_save_detected_faces([(x, y, w, h)], img_path)
+
+        logging.info(CROPPED_SAVED_FACE_LOG.format(img_path=img_path))
 
 
 if __name__ == "__main__":
