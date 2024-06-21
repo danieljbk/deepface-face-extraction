@@ -4,13 +4,10 @@ import logging
 # Constants for directories and file names
 BASE_IMG_DB_NAME = "face-db"
 CROPPED_IMG_DB_NAME = "cropped-face-db"
-BASE_IMG_DIR_NAME = "chaewon-test"
-REFERENCE_IMG_FILE_NAME = "3.jpg"  # Faces will be compared against this image, which therefore must be high quality.
-
-# Automatically set file path from constants
+BASE_IMG_DIR_NAME = "karina"
 REFERENCE_IMG_FILE_PATH = os.path.join(
-    BASE_IMG_DB_NAME, BASE_IMG_DIR_NAME, REFERENCE_IMG_FILE_NAME
-)
+    "karina.jpg"
+)  # Faces will be compared against this image, which therefore must be high quality.
 
 # Constants for logging messages
 FAILED_TO_FIND_FACES_LOG = "Failed to find similar faces: {img_path} due to: {error}"
