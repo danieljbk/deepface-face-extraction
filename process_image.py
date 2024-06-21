@@ -2,7 +2,7 @@ import os
 import cv2
 import logging
 from deepface import DeepFace
-from utils import load_image, save_image, ensure_directory_exists
+from utils import load_and_process_image, save_processed_image, ensure_directory_exists
 from config import (
     BASE_IMG_FILE_PATH,
     BASE_IMG_DIR_NAME,
@@ -21,7 +21,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
     ensure_directory_exists(detected_faces_dir)
 
     # load image here so I simply crop this loaded image for every detected face
-    img = load_image(img_path)
+    img = load_and_process_image(img_path)
     if img is None:
         logging.error(f"Failed to load image at ({img_path}), aborting face detection.")
         return None  # Exit the function if image is not loaded
@@ -59,7 +59,7 @@ def crop_and_save_detected_faces(faces: list, img_path: str):
             cropped_img_full_path = os.path.join(
                 detected_faces_dir, cropped_img_filename
             )
-            success = save_image(cropped_img_full_path, cropped_img)
+            success = save_processed_image(cropped_img_full_path, cropped_img)
             if success:
                 count += 1
 
@@ -132,26 +132,20 @@ def detect_faces(img_path):
 
 
 def process_single_image(img_path):
+    logging.info(f"Starting processing of image: {img_path}")
     faces = detect_faces(img_path)
-    if faces is None:
-        logging.error(
-            f"Failed to detect faces from ({img_path}), aborting further processing."
-        )
+    if not faces:
+        logging.error(f"No faces detected in {img_path}. Skipping.")
         return
 
     detected_faces_dir = crop_and_save_detected_faces(faces, img_path)
-    if detected_faces_dir is None:
-        logging.error(
-            f"Failed to save detected faces from ({img_path}), aborting further processing."
-        )
+    if not detected_faces_dir:
+        logging.error(f"No faces saved from {img_path}. Skipping.")
         return
 
-    # Find the most similar face
-    most_similar_face_img_path = find_most_similar_face(
-        detected_faces_dir,
-    )
+    most_similar_face_img_path = find_most_similar_face(detected_faces_dir)
     if most_similar_face_img_path:
-        logging.info(f"Most similar face found at: ({most_similar_face_img_path})")
+        logging.info(f"Most similar face found at: {most_similar_face_img_path}")
 
         # Set the destination path for copying the photo
         new_most_similar_cropped_img_path = os.path.join(
@@ -161,13 +155,17 @@ def process_single_image(img_path):
         )
 
         # Copy & save the most similar cropped image
-        most_similar_cropped_img = load_image(most_similar_face_img_path)
-        save_image(new_most_similar_cropped_img_path, most_similar_cropped_img)
+        most_similar_cropped_img = load_and_process_image(most_similar_face_img_path)
+        save_processed_image(
+            new_most_similar_cropped_img_path, most_similar_cropped_img
+        )
         logging.info(
             f"Copied and saved the most similar face to: ({new_most_similar_cropped_img_path})"
         )
+    else:
+        logging.info(f"No similar faces found for image: {img_path}")
 
-    logging.info(f"Processing of image ({img_path}) complete.")
+    logging.info(f"Completed processing of image: {img_path}")
 
 
 # For standalone testing of this file.

@@ -3,10 +3,10 @@ import logging
 
 # Constants
 BASE_IMG_DB_NAME = "face-db"
-BASE_IMG_DIR_NAME = "karina"
+BASE_IMG_DIR_NAME = "chaewon-test"
 BASE_IMG_FILE_NAME = ""
 
-REFERENCE_IMG_FILE_NAME = "2023-05-25_05-27-25_UTC_1.jpg"  # Faces will be compared against this image, which therefore must be high quality.
+REFERENCE_IMG_FILE_NAME = "3.jpg"  # Faces will be compared against this image, which therefore must be high quality.
 
 CROPPED_IMG_DB_NAME = "cropped-face-db"
 
@@ -20,8 +20,9 @@ REFERENCE_IMG_FILE_PATH = os.path.join(
 
 
 def configure_logging():
+    level = os.getenv("LOG_LEVEL", "INFO").upper()
     logging.basicConfig(
-        level=logging.INFO,
+        level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[logging.FileHandler("debug.log"), logging.StreamHandler()],
     )
